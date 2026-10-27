@@ -95,11 +95,28 @@ Build these in order. Each one should end with something that works in Chrome.
 1. **Hello Griot.** `manifest.json` with the icons, a popup with the header, and a list of the open tabs grouped by window. No saving yet.
 2. **Park a thread.** A "Park the thread I'm on" button opens the park card for the current window: favicons, a note box pre-filled with a simple draft from the tab titles (marked "Griot's guess"), an optional Next field, "Park thread" and "Not now". Parking saves the thread to `chrome.storage.local`.
 3. **Home and pick up.** The home screen lists parked threads, newest first, as cards with the note, the Next line and "3 tabs · yesterday, 6:42 pm". "Pick up" reopens that thread's tabs in a new window.
-4. **Trail.** The background script records the pages visited in each window. The thread detail screen shows the trail newest at the bottom, with the last page marked "You stopped here". Add "Mark done" and "Delete".
-5. **Prompts.** Ask to park when the user has been idle for 10 minutes or closes a window with 3 or more tabs (as a Chrome notification that opens the popup). Add an Alt+Shift+P shortcut. Never ask more than once per window per hour.
+4. **Trail.** The background script records the pages visited in each window (title, link, time; never page content). The thread detail screen shows the trail newest at the bottom, with the last page marked "You stopped here". Add "Mark done" and "Delete". Test it with the journey in "Test scenario" below: Griot must be able to rebuild that story from titles and links alone.
+5. **Welcome back and prompts.**
+   - **Welcome back card (most important).** Most breaks start without warning, so nobody is there to answer a park prompt. When Chrome goes from idle back to active after 10 minutes or more, show a resume card for the window the user was in, even if nothing was parked: "Welcome back. You were away for 25 minutes." Then a guessed note built from the trail (labelled "Griot's guess"), the last page as "You stopped here", a guessed Next step, and three actions: go to the last relevant page, "Reopen all", and "That's not it" (lets the user correct the guess in one tap). Deliver it as a Chrome notification that opens the popup on the welcome back screen, and also show it the next time the popup opens.
+   - **Park shortcut.** Alt+Shift+P opens the park card, for planned breaks.
+   - **Leave prompts.** Offer to park when a window with 3 or more tabs is closed. Never ask more than once per window per hour.
+   - **Simple guessing rules, no AI.** Topic = words repeated across page titles. A page title with "vs" or "comparison" plus two product sites = "Comparing X and Y". A tutorial or "how to" page for one product watched after a comparison = Next guess "Sign up for X?". Last page before going idle = "You stopped here". Always label these as guesses.
 6. **Privacy and settings.** Pause Griot, turn each prompt on or off, list sites never to record (banking and health on by default), and "Delete all threads and trails".
 
 After milestone 6: a README with screenshots, a privacy page, and a short demo video for the Chrome Web Store.
+
+## Test scenario
+
+Use this real journey to test milestones 4 and 5. In one window the user:
+
+1. Reads an article, follows a link to a second article.
+2. Opens a "Product X vs Product Y" comparison page.
+3. Opens Product X's site and Product Y's site in separate tabs.
+4. Pastes both links into ChatGPT and asks for a summary.
+5. Watches a YouTube tutorial: "How to get started with Product X".
+6. Goes on a break without parking anything, and comes back 25 minutes later to the ChatGPT tab, having forgotten what they were doing. They had planned to sign up for Product X next.
+
+Griot passes if the welcome back card shows something close to: "Griot's guess: comparing Product X and Product Y", "You stopped here: How to get started with Product X", "Next (guess): sign up for Product X?", with a button that goes straight to Product X's site. Griot cannot know what ChatGPT said or why the user preferred X; only the user's own note can capture that, and that is expected.
 
 ## How the owner tests a change
 
