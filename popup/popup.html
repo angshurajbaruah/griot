@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Griot</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- The woven triangle strip along the top edge -->
+  <div class="border-strip" aria-hidden="true"></div>
+
+  <header class="header">
+    <img class="wordmark" src="../assets/brand/griot-wordmark.svg" alt="Griot">
+    <!-- Settings come in a later milestone; the button is here so the header matches the design -->
+    <button type="button" class="icon-button" aria-label="Privacy and settings" aria-disabled="true" title="Settings are coming soon">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="2.5"></circle><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"></path></svg>
+    </button>
+  </header>
+
+  <main class="main">
+    <h1 class="title">Your open tabs</h1>
+    <!-- popup.js fills this with one section per window -->
+    <div id="window-list" class="window-list"></div>
+  </main>
+
+  <footer class="footer">
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2"></rect><path d="M7 9V6.5a3 3 0 0 1 6 0V9"></path></svg>
+    Everything stays on this device.
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>
