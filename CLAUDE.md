@@ -57,9 +57,18 @@ README.md
 
 ## Design
 
-The full brand book is the Griot design system: https://claude.ai/artifact/TGZpskDccYW93gADREAkES
-The screen designs are on the Griot popup UI canvas: https://claude.ai/artifact/4Nfaax6762ro7ZZ2LQWZKz
-Match those screens. If you cannot open the links, follow the rules below.
+**Match the screen designs in `design/`.** They are the source of truth for layout, spacing and copy:
+
+| Screen | Image | HTML with exact styles | Milestone |
+| --- | --- | --- | --- |
+| First run | `design/screens/1-first-run.png` | `design/html/1-first-run.html` | 1 |
+| Park card | `design/screens/2-park-card.png` | `design/html/2-park-card.html` | 2 |
+| Home | `design/screens/3-home.png` | `design/html/3-home.html` | 3 |
+| Thread detail and trail | `design/screens/4-thread-detail.png` | `design/html/4-thread-detail.html` | 4 |
+| Privacy and settings | `design/screens/5-privacy-settings.png` | `design/html/5-privacy-settings.html` | 6 |
+| Welcome back | `design/screens/6-welcome-back.png` | `design/html/6-welcome-back.html` | 5 |
+
+Open the HTML file to copy exact colours, sizes and spacing; the sample text in it (Apollo, Clay, Product X) is placeholder data, so render real threads instead. The images were exported with fallback fonts, so the headings will look different once BackOut is bundled. The designs live on the owner's Griot popup UI canvas and brand book (https://claude.ai/artifact/4Nfaax6762ro7ZZ2LQWZKz and https://claude.ai/artifact/TGZpskDccYW93gADREAkES); the files in `design/` are copies of them.
 
 ```css
 :root {
