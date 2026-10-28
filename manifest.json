@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Griot",
   "description": "Your context lives on. Remembers where you left off, and keeps it on this device.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "permissions": ["tabs", "storage", "favicon"],
   "icons": {
     "16": "assets/icons/icon16.png",

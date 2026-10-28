@@ -88,7 +88,7 @@ a:focus-visible {
   cursor: default;
 }
 
-/* Main area scrolls when there are many tabs */
+/* Main area scrolls when there are many threads */
 .main {
   flex-grow: 1;
   min-height: 0;
@@ -108,15 +108,9 @@ a:focus-visible {
   letter-spacing: 0.02em;
 }
 
-.window-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* Small uppercase label above each window's card */
+/* Small uppercase label, like "Continue thread" */
 .eyebrow {
-  margin: 0 0 8px;
+  margin: 0;
   font-family: var(--font-title);
   font-size: 13px;
   line-height: 16px;
@@ -126,67 +120,128 @@ a:focus-visible {
   color: var(--ink-muted);
 }
 
-/* One card per window */
-.tab-card {
-  list-style: none;
-  margin: 0;
-  padding: 4px 16px;
+/* Home: one big card for the newest thread, small cards for the rest */
+.thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.thread-card {
   background: var(--surface-raised);
   border: 1px solid var(--hairline);
   border-radius: 12px;
-}
-
-.tab-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0;
-  font-family: var(--font-ui);
-}
-
-.tab-row + .tab-row {
-  border-top: 1px solid var(--hairline);
-}
-
-/* Site icon from Chrome's local favicon store */
-.tab-icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.tab-text {
-  min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
-.tab-title,
-.tab-site {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.thread-card-main {
+  padding: 14px;
+  gap: 10px;
 }
 
-.tab-title {
+.thread-card-small {
+  padding: 12px;
+  gap: 6px;
+  min-width: 0;
+}
+
+.recent-label {
+  margin-top: 4px;
+}
+
+.recent-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.thread-title {
+  margin: 0;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* The user's own note: italic serif */
+.thread-note {
+  margin: 0;
+  font-style: italic;
+  font-size: 16px;
+  line-height: 23px;
+  overflow-wrap: anywhere;
+}
+
+.thread-card-small .thread-note {
   font-size: 14px;
   line-height: 20px;
 }
 
-.tab-site {
+/* A note Griot drafted: plain muted text, so it never looks like the user's words */
+.thread-note.is-guess {
+  font-style: normal;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--ink-muted);
+}
+
+/* The Next line: ochre dot, "Next:" label */
+.next-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ochre-soft);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.thread-card-small .next-line {
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.next-line strong {
+  font-weight: 600;
+  color: var(--ochre-ink);
+}
+
+.next-line .next-dot {
+  flex-shrink: 0;
+}
+
+.thread-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.thread-meta {
+  font-family: var(--font-ui);
   font-size: 12px;
   line-height: 16px;
   color: var(--ink-muted);
 }
 
-/* The ochre dot marks the tab you are on right now */
-.tab-active-dot {
-  width: 8px;
-  height: 8px;
-  margin-left: auto;
+/* Pick up: brown on the newest thread, outlined on the others (one primary per screen) */
+.pick-up-button {
+  height: 36px;
+  padding: 0 16px;
   flex-shrink: 0;
-  border-radius: 999px;
-  background: var(--ochre);
+}
+
+.thread-card-small .pick-up-button {
+  height: 36px;
+  padding: 0 12px;
+  align-self: flex-start;
 }
 
 .empty-note {
@@ -285,10 +340,6 @@ a:focus-visible {
   gap: 10px;
 }
 
-.park-eyebrow-row .eyebrow {
-  margin: 0;
-}
-
 .park-mark {
   width: 22px;
   height: 22px;
@@ -309,11 +360,13 @@ a:focus-visible {
   gap: 4px;
 }
 
+/* Site icons get a hairline border so white icons stay visible */
 .park-favicon {
   width: 20px;
   height: 20px;
   padding: 2px;
   box-sizing: border-box;
+  border: 1px solid var(--hairline);
   border-radius: 4px;
   background: var(--sand-stone);
 }
