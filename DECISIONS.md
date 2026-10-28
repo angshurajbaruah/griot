@@ -20,3 +20,11 @@
 - 2026-10-28: A thread stays on home after Pick up. Nothing in milestone 3 says it should go away, and "Mark done" (milestone 4) is how a thread leaves.
 - 2026-10-28: Finding from real use: drafts latched onto site names ("Google", "YouTube") and guessed a topic from one stray word. The draft now ignores each tab's own site name and plain numbers, and when no word repeats across tabs it uses the current tab's title as-is instead of guessing.
 - 2026-10-28: Site icons get a hairline border, because white icons disappeared against the light background.
+- 2026-10-28: Finding from real use: Pick up landed on the wrong tab. Each saved tab now has an `active` flag for the tab you were on when parking, and Pick up selects it.
+- 2026-10-28: Finding from real use: a whole window is not a thread, so unrelated tabs came along. The park card lists the window's tabs with checkboxes; the tab you are on and tabs sharing a word with the note start ticked, and only ticked tabs are saved. Ticks are set once when the card opens, so editing the note never undoes your choices.
+- 2026-10-28: Finding from real use: Pick up opened duplicates of tabs that were already open. If a window already has at least half of the thread's tabs, Pick up switches to it, adds only the missing tabs and selects the saved tab; otherwise it opens a new window.
+- 2026-10-28: Finding from real use: the guessed topic grabbed stray words that happened to appear twice. A word now counts as the topic only if it is in at least a third of the tabs (and at least two); otherwise the draft is the current tab's title.
+- 2026-10-28: The trail records a visit when the page in the tab you are looking at loads, changes address or changes title, and when you switch tabs. Only http and https pages, only title, link and time, at most 200 visits per window. Background tabs that load but are never looked at are not visits.
+- 2026-10-28: Trails are cleared when Chrome starts, because Chrome reuses window numbers after a restart and old trails would mix with new windows.
+- 2026-10-28: Parking copies the window's trail into the thread, minus visits to tabs you unticked, so an unrelated tab does not leak into the story.
+- 2026-10-28: Delete asks inside the screen ("Delete this thread? This can't be undone.") rather than with a browser pop-up, so it matches the design and keeps focus in the popup.

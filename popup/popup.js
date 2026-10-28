@@ -1,12 +1,23 @@
-// Griot popup: the home screen of parked threads, and the park card that saves a thread.
-// Uses cleanTitle, draftNote, draftTitle, faviconFor (lib/threads.js)
-// and getThreads, saveThread (lib/storage.js).
+// Griot popup: home (parked threads), the park card, and a thread's detail and trail.
+// Uses cleanTitle, shortTitle, draftNote, draftTitle, sharesWordWithNote, faviconFor (lib/threads.js)
+// and getThreads, saveThread, updateThread, deleteThread, getTrail (lib/storage.js).
 
 // Pages that are not part of a thread, like an empty new tab.
 const SKIPPED_URLS = ['chrome://newtab/', 'about:blank'];
 
+// How many trail pages the detail screen shows; older ones are counted as hidden.
+const TRAIL_PAGES_SHOWN = 6;
+
 // The draft note Griot wrote, so we can tell later whether the user changed it.
 let draftedNote = '';
+
+// The tabs listed on the park card, in the same order as their checkboxes.
+let parkCardTabs = [];
+
+// The thread open on the detail screen.
+let openThread = null;
+
+// ---------- Small helpers ----------
 
 // Get the tabs of the window you are in, leaving out empty new tabs.
 async function getCurrentWindowTabs() {
@@ -15,12 +26,20 @@ async function getCurrentWindowTabs() {
 }
 
 // Make a site icon image from Chrome's local favicon store.
-function makeFavicon(pageUrl, className) {
+function makeFavicon(pageUrl) {
   const img = document.createElement('img');
-  img.className = className;
+  img.className = 'site-icon';
   img.src = faviconFor(pageUrl);
   img.alt = '';
   return img;
+}
+
+// Make a small piece of text.
+function makeText(tag, className, text) {
+  const element = document.createElement(tag);
+  element.className = className;
+  element.textContent = text;
+  return element;
 }
 
 // "1 tab" or "4 tabs".
@@ -28,10 +47,14 @@ function tabCountText(count) {
   return count === 1 ? '1 tab' : `${count} tabs`;
 }
 
+// A clock time like "6:42 pm".
+function clockText(time) {
+  return new Date(time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+}
+
 // Say when a thread was parked. Long: "yesterday, 6:42 pm". Short: "Mon".
 function parkedTimeText(time, short) {
   const parked = new Date(time);
-  const clock = parked.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
   const startOfToday = new Date().setHours(0, 0, 0, 0);
   const daysAgo = Math.floor((startOfToday - new Date(time).setHours(0, 0, 0, 0)) / 86400000);
 
@@ -42,16 +65,30 @@ function parkedTimeText(time, short) {
   else day = parked.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
   if (short) return daysAgo <= 1 ? day.charAt(0).toUpperCase() + day.slice(1) : day;
-  return `${day}, ${clock}`;
+  return `${day}, ${clockText(time)}`;
 }
 
-// Make a small piece of text inside a card.
-function makeText(tag, className, text) {
-  const element = document.createElement(tag);
-  element.className = className;
-  element.textContent = text;
-  return element;
+// A link without its #section part, so the same page always matches.
+function pageAddress(url) {
+  return (url || '').split('#')[0];
 }
+
+// Show one screen ("home", "park" or "detail") and hide the others.
+function showScreen(name) {
+  document.getElementById('home-screen').hidden = name !== 'home';
+  document.getElementById('park-screen').hidden = name !== 'park';
+  document.getElementById('detail-screen').hidden = name !== 'detail';
+}
+
+// Go back home and show a short green message, like "Thread parked."
+async function goHome(message) {
+  await showHome();
+  showScreen('home');
+  document.getElementById('parked-message').hidden = !message;
+  document.getElementById('parked-message-text').textContent = message || '';
+}
+
+// ---------- Home ----------
 
 // Make the ochre "Next:" line for a thread.
 function makeNextLine(next) {
@@ -67,7 +104,7 @@ function makeNextLine(next) {
 
 // Make the note: the user's words in italic, or Griot's draft in plain muted text.
 function makeNote(thread) {
-  const note = makeText('p', 'thread-note', thread.note);
+  const note = makeText('span', 'thread-note', thread.note);
   if (thread.noteIsGuess) note.classList.add('is-guess');
   return note;
 }
@@ -89,13 +126,25 @@ function makePickUpButton(thread, isPrimary) {
   return button;
 }
 
+// Wrap part of a card in a button that opens the thread's detail screen.
+// Its click area stretches over the whole card (see .card-open in popup.css).
+function makeOpenButton(thread, content) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'card-open';
+  button.setAttribute('aria-label', `Open ${thread.title}`);
+  button.append(content);
+  button.addEventListener('click', () => openDetail(thread));
+  return button;
+}
+
 // The big card for the newest thread: "Continue thread".
 function makeMainCard(thread) {
   const card = document.createElement('article');
   card.className = 'thread-card thread-card-main';
   card.append(makeText('span', 'eyebrow', 'Continue thread'));
-  if (thread.note) card.append(makeNote(thread));
-  else card.append(makeText('p', 'thread-title', thread.title));
+  const summary = thread.note ? makeNote(thread) : makeText('span', 'thread-title', thread.title);
+  card.append(makeOpenButton(thread, summary));
   if (thread.next) card.append(makeNextLine(thread.next));
 
   const footer = document.createElement('div');
@@ -109,7 +158,10 @@ function makeMainCard(thread) {
 function makeSmallCard(thread) {
   const card = document.createElement('article');
   card.className = 'thread-card thread-card-small';
-  card.append(makeText('h3', 'thread-title', thread.title));
+  const heading = document.createElement('h3');
+  heading.className = 'thread-title';
+  heading.append(makeOpenButton(thread, thread.title));
+  card.append(heading);
   if (thread.note) card.append(makeNote(thread));
   if (thread.next) card.append(makeNextLine(thread.next));
   card.append(makeText('span', 'thread-meta', metaText(thread, true)));
@@ -121,7 +173,7 @@ function makeSmallCard(thread) {
   return card;
 }
 
-// Draw the parked threads on the home screen, newest first.
+// Draw the parked threads on the home screen, newest first. Done threads are left out.
 async function showHome() {
   const container = document.getElementById('thread-list');
   container.replaceChildren();
@@ -144,31 +196,95 @@ async function showHome() {
   }
 }
 
-// Reopen a thread's tabs together in a new window.
-async function pickUpThread(thread) {
-  const urls = thread.tabs.map((tab) => tab.url);
-  await chrome.windows.create({ url: urls, focused: true });
+// ---------- Pick up ----------
+
+// Find an open window that already has at least half of the thread's tabs.
+async function findWindowWithThread(thread) {
+  const wanted = new Set(thread.tabs.map((tab) => pageAddress(tab.url)));
+  const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
+  let best = null;
+  let bestCount = 0;
+  windows.forEach((win) => {
+    const count = new Set(win.tabs.map((tab) => pageAddress(tab.url)).filter((url) => wanted.has(url))).size;
+    if (count > bestCount) {
+      best = win;
+      bestCount = count;
+    }
+  });
+  return bestCount * 2 >= wanted.size ? best : null;
 }
 
-// Show one screen ("home" or "park") and hide the other.
-function showScreen(name) {
-  document.getElementById('home-screen').hidden = name !== 'home';
-  document.getElementById('park-screen').hidden = name !== 'park';
+// Bring back a thread's tabs and select the tab you were on when you parked.
+// If they are already open, switch to that window and add only the missing tabs.
+async function pickUpThread(thread) {
+  const activeUrl = pageAddress((thread.tabs.find((tab) => tab.active) || thread.tabs[0]).url);
+  const existing = await findWindowWithThread(thread);
+
+  if (existing) {
+    const openUrls = new Set(existing.tabs.map((tab) => pageAddress(tab.url)));
+    const missing = thread.tabs.filter((tab) => !openUrls.has(pageAddress(tab.url)));
+    for (const tab of missing) {
+      await chrome.tabs.create({ windowId: existing.id, url: tab.url, active: false });
+    }
+    const tabs = await chrome.tabs.query({ windowId: existing.id });
+    const target = tabs.find((tab) => pageAddress(tab.url) === activeUrl);
+    if (target) await chrome.tabs.update(target.id, { active: true });
+    await chrome.windows.update(existing.id, { focused: true });
+    return;
+  }
+
+  const newWindow = await chrome.windows.create({ url: thread.tabs.map((tab) => tab.url), focused: true });
+  const activeIndex = Math.max(0, thread.tabs.findIndex((tab) => tab.active));
+  const target = newWindow.tabs[activeIndex];
+  if (target) await chrome.tabs.update(target.id, { active: true });
+}
+
+// ---------- Park card ----------
+
+// Make one row on the park card: checkbox, site icon and title.
+function makeParkTabRow(tab, index, ticked) {
+  const row = document.createElement('li');
+  row.className = 'park-tab-row';
+  const label = document.createElement('label');
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = ticked;
+  checkbox.dataset.index = String(index);
+  checkbox.addEventListener('change', updateTickedCount);
+  const title = makeText('span', 'park-tab-title', cleanTitle(tab.title) || tab.url);
+  label.append(checkbox, makeFavicon(tab.url), title);
+  row.append(label);
+  return row;
+}
+
+// The tabs whose boxes are ticked on the park card.
+function tickedTabs() {
+  const boxes = document.querySelectorAll('#park-tab-list input[type="checkbox"]');
+  return [...boxes].filter((box) => box.checked).map((box) => parkCardTabs[Number(box.dataset.index)]);
+}
+
+// Show "3 of 7" next to the tab list, and turn off Park thread when nothing is ticked.
+function updateTickedCount() {
+  const count = tickedTabs().length;
+  document.getElementById('park-tab-count').textContent = `(${count} of ${parkCardTabs.length})`;
+  document.getElementById('park-submit').disabled = count === 0;
 }
 
 // Fill the park card for the current window and show it.
+// The tab you are on, and tabs that share a word with the note, start ticked.
 async function openParkCard() {
-  const tabs = await getCurrentWindowTabs();
-  const activeTab = tabs.find((tab) => tab.active);
+  parkCardTabs = await getCurrentWindowTabs();
+  const activeTab = parkCardTabs.find((tab) => tab.active);
 
-  const favicons = document.getElementById('park-favicons');
-  favicons.replaceChildren(...tabs.slice(0, 4).map((tab) => makeFavicon(tab.url, 'park-favicon')));
-  document.getElementById('park-tab-count').textContent = `${tabCountText(tabs.length)} in this thread`;
-
-  draftedNote = draftNote(tabs, activeTab);
+  draftedNote = draftNote(parkCardTabs, activeTab);
   document.getElementById('park-note').value = draftedNote;
   document.getElementById('park-guess-hint').hidden = draftedNote === '';
   document.getElementById('park-next').value = '';
+
+  const rows = parkCardTabs.map((tab, index) =>
+    makeParkTabRow(tab, index, tab.active || sharesWordWithNote(tab, draftedNote)));
+  document.getElementById('park-tab-list').replaceChildren(...rows);
+  updateTickedCount();
 
   document.getElementById('parked-message').hidden = true;
   showScreen('park');
@@ -181,11 +297,16 @@ function onNoteEdited() {
   document.getElementById('park-guess-hint').hidden = note === '' || note !== draftedNote;
 }
 
-// Save the current window as a parked thread, then go back home.
+// Save the ticked tabs as a parked thread, with the window's trail, then go back home.
 async function parkThread(event) {
   event.preventDefault();
-  const tabs = await getCurrentWindowTabs();
-  const activeTab = tabs.find((tab) => tab.active);
+  const tabs = tickedTabs();
+  if (tabs.length === 0) return;
+
+  // The tab you were on is the one Pick up selects. If it was unticked, use the first tab.
+  const activeTab = tabs.find((tab) => tab.active) || tabs[0];
+  const untickedUrls = new Set(parkCardTabs.filter((tab) => !tabs.includes(tab)).map((tab) => pageAddress(tab.url)));
+  const windowTrail = await getTrail(tabs[0].windowId);
   const note = document.getElementById('park-note').value.trim();
 
   await saveThread({
@@ -194,25 +315,110 @@ async function parkThread(event) {
     note,
     noteIsGuess: note !== '' && note === draftedNote.trim(),
     next: document.getElementById('park-next').value.trim(),
-    tabs: tabs.map((tab) => ({ url: tab.url, title: cleanTitle(tab.title), favIconUrl: tab.favIconUrl || '' })),
-    trail: [],
+    tabs: tabs.map((tab) => ({
+      url: tab.url,
+      title: cleanTitle(tab.title),
+      favIconUrl: tab.favIconUrl || '',
+      active: tab === activeTab
+    })),
+    trail: windowTrail.filter((visit) => !untickedUrls.has(pageAddress(visit.url))),
     parkedAt: Date.now(),
     status: 'parked'
   });
 
-  await showHome();
-  showScreen('home');
-  document.getElementById('parked-message').hidden = false;
+  await goHome('Thread parked.');
 }
 
-// Leave the park card without saving.
-function closeParkCard() {
-  showScreen('home');
+// ---------- Thread detail ----------
+
+// Make one page in the trail. The last one is marked "You stopped here".
+function makeTrailItem(visit, isLast) {
+  const item = document.createElement('li');
+  item.className = isLast ? 'trail-item is-last' : 'trail-item';
+  const dot = makeText('span', 'trail-dot', '');
+  dot.setAttribute('aria-hidden', 'true');
+
+  const text = document.createElement('span');
+  text.className = 'trail-text';
+  const page = makeText('span', 'trail-page', shortTitle(visit.title) || visit.url);
+  page.append(makeText('span', 'trail-time', ` · ${clockText(visit.time)}`));
+  text.append(page);
+  if (isLast) text.append(makeText('span', 'stopped-here', 'You stopped here'));
+
+  item.append(dot, text);
+  return item;
 }
+
+// Draw the trail panel: the latest pages, oldest at the top and the newest at the bottom.
+function showTrail(trail) {
+  const list = document.getElementById('trail-list');
+  const hiddenCount = Math.max(0, trail.length - TRAIL_PAGES_SHOWN);
+  const pageWord = trail.length === 1 ? 'page' : 'pages';
+  document.getElementById('trail-heading').textContent = `Trail · ${trail.length} ${pageWord}`;
+  document.getElementById('trail-hidden-count').textContent =
+    hiddenCount > 0 ? `${hiddenCount} earlier ${hiddenCount === 1 ? 'page' : 'pages'} hidden` : '';
+
+  if (trail.length === 0) {
+    list.hidden = true;
+    document.getElementById('trail-hidden-count').textContent =
+      'No trail for this thread. Threads you park from now on keep the pages you visited.';
+    return;
+  }
+  list.hidden = false;
+  const shown = trail.slice(-TRAIL_PAGES_SHOWN);
+  list.replaceChildren(...shown.map((visit, index) => makeTrailItem(visit, index === shown.length - 1)));
+}
+
+// Open the detail screen for one thread.
+function openDetail(thread) {
+  openThread = thread;
+  document.getElementById('detail-parked-time').textContent = `Parked ${parkedTimeText(thread.parkedAt, false)}`;
+
+  const note = document.getElementById('detail-note');
+  note.textContent = thread.noteIsGuess ? `Griot's guess: ${thread.note}` : thread.note || thread.title;
+  note.classList.toggle('is-guess', Boolean(thread.noteIsGuess));
+
+  document.getElementById('detail-next').replaceChildren(...(thread.next ? [makeNextLine(thread.next)] : []));
+  showTrail(thread.trail || []);
+
+  document.getElementById('detail-reopen').textContent = `Reopen ${tabCountText(thread.tabs.length)}`;
+  showDeleteConfirm(false);
+  document.getElementById('parked-message').hidden = true;
+  showScreen('detail');
+  document.getElementById('detail-back').focus();
+}
+
+// Swap the action buttons for the "Delete this thread?" question, or back.
+function showDeleteConfirm(show) {
+  document.getElementById('detail-actions').hidden = show;
+  document.getElementById('delete-confirm').hidden = !show;
+  if (show) document.getElementById('delete-cancel').focus();
+}
+
+// Mark the open thread done, which takes it off home.
+async function markOpenThreadDone() {
+  await updateThread(openThread.id, { status: 'done' });
+  await goHome('Marked done.');
+}
+
+// Delete the open thread for good (only after the user confirmed).
+async function deleteOpenThread() {
+  await deleteThread(openThread.id);
+  await goHome('Thread deleted.');
+}
+
+// ---------- Buttons ----------
 
 document.getElementById('open-park-card').addEventListener('click', openParkCard);
 document.getElementById('park-note').addEventListener('input', onNoteEdited);
-document.getElementById('park-not-now').addEventListener('click', closeParkCard);
+document.getElementById('park-not-now').addEventListener('click', () => goHome());
 document.getElementById('park-screen').addEventListener('submit', parkThread);
+
+document.getElementById('detail-back').addEventListener('click', () => goHome());
+document.getElementById('detail-reopen').addEventListener('click', () => pickUpThread(openThread));
+document.getElementById('detail-done').addEventListener('click', markOpenThreadDone);
+document.getElementById('detail-delete').addEventListener('click', () => showDeleteConfirm(true));
+document.getElementById('delete-cancel').addEventListener('click', () => showDeleteConfirm(false));
+document.getElementById('delete-yes').addEventListener('click', deleteOpenThread);
 
 showHome();
