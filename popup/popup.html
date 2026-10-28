@@ -43,7 +43,7 @@
   <form id="park-screen" class="screen park" hidden>
     <div class="park-eyebrow-row">
       <img src="../assets/brand/griot-mark.svg" alt="" class="park-mark">
-      <span class="eyebrow">This window</span>
+      <span id="park-eyebrow" class="eyebrow">This window</span>
     </div>
 
     <h1 class="title">Where were you headed?</h1>
@@ -108,6 +108,64 @@
         <button type="button" id="delete-yes" class="button button-danger-solid">Delete</button>
       </div>
     </div>
+  </div>
+
+  <!-- Screen 4: welcome back after a break. Everything on it is Griot's guess -->
+  <div id="welcome-screen" class="screen" hidden>
+    <header class="header">
+      <img class="wordmark" src="../assets/brand/griot-wordmark.svg" alt="Griot">
+      <button type="button" class="icon-button" aria-label="Privacy and settings" aria-disabled="true" title="Settings are coming soon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="2.5"></circle><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"></path></svg>
+      </button>
+    </header>
+
+    <main class="main welcome-main">
+      <div class="welcome-heading">
+        <span id="welcome-away" class="eyebrow"></span>
+        <h1 class="title">Welcome back</h1>
+      </div>
+
+      <article class="welcome-card">
+        <div id="welcome-guess" class="welcome-guess">
+          <span class="caption">Griot's guess</span>
+          <p id="welcome-guess-text" class="welcome-guess-text"></p>
+        </div>
+
+        <div class="stopped-here">
+          <span class="stopped-dot" aria-hidden="true"></span>
+          <div class="stopped-text">
+            <span class="stopped-label">You stopped here</span>
+            <span id="welcome-stopped-title" class="stopped-title"></span>
+            <span id="welcome-stopped-meta" class="caption"></span>
+          </div>
+        </div>
+
+        <div id="welcome-next" class="next-line welcome-next">
+          <span class="next-dot" aria-hidden="true"></span>
+          <span><strong>Next (guess):</strong> <span id="welcome-next-text"></span></span>
+        </div>
+
+        <span id="welcome-pages" class="caption"></span>
+      </article>
+
+      <div class="welcome-actions">
+        <button type="button" id="welcome-go" class="button button-primary welcome-go">
+          <span id="welcome-go-text"></span>
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10h10M11 6l4 4-4 4"></path></svg>
+        </button>
+        <div class="welcome-secondary">
+          <button type="button" id="welcome-reopen" class="button button-secondary"></button>
+          <button type="button" id="welcome-not-it" class="button link-button">That's not it</button>
+        </div>
+      </div>
+    </main>
+
+    <footer class="welcome-footer">
+      <p class="privacy-line">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2"></rect><path d="M7 9V6.5a3 3 0 0 1 6 0V9"></path></svg>
+        Built from page titles only. Everything stays on this device.
+      </p>
+    </footer>
   </div>
 
   <script src="../lib/threads.js"></script>
