@@ -24,7 +24,7 @@
       <!-- Shown for a moment after parking -->
       <p id="parked-message" class="saved-message" role="status" hidden>
         <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>
-        Thread parked.
+        <span id="parked-message-text">Thread parked.</span>
       </p>
       <!-- popup.js fills this with one card per parked thread -->
       <div id="thread-list" class="thread-list"></div>
@@ -48,14 +48,9 @@
 
     <h1 class="title">Where were you headed?</h1>
 
-    <div class="park-tabs">
-      <div id="park-favicons" class="park-favicons" aria-hidden="true"></div>
-      <span id="park-tab-count" class="caption"></span>
-    </div>
-
     <div class="field">
       <label for="park-note" class="field-label">Your note</label>
-      <textarea id="park-note" class="note-input" rows="3"></textarea>
+      <textarea id="park-note" class="note-input" rows="2"></textarea>
       <span id="park-guess-hint" class="caption">Griot's guess from your tab titles. Make it yours.</span>
     </div>
 
@@ -67,11 +62,53 @@
       <input id="park-next" class="text-input" type="text">
     </div>
 
+    <!-- The window's tabs. Only ticked tabs are saved with the thread -->
+    <fieldset class="park-tabs">
+      <legend class="field-label">Tabs in this thread <span id="park-tab-count" class="optional"></span></legend>
+      <ul id="park-tab-list" class="park-tab-list"></ul>
+    </fieldset>
+
     <div class="park-actions">
       <button type="button" id="park-not-now" class="button button-secondary">Not now</button>
-      <button type="submit" class="button button-primary">Park thread</button>
+      <button type="submit" id="park-submit" class="button button-primary">Park thread</button>
     </div>
   </form>
+
+  <!-- Screen 3: one thread's detail and trail -->
+  <div id="detail-screen" class="screen" hidden>
+    <header class="detail-header">
+      <button type="button" id="detail-back" class="back-button">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"></path></svg>
+        All threads
+      </button>
+      <span id="detail-parked-time" class="caption"></span>
+    </header>
+
+    <div class="detail-body">
+      <p id="detail-note" class="detail-note"></p>
+      <div id="detail-next"></div>
+
+      <section class="trail-panel" aria-labelledby="trail-heading">
+        <h2 id="trail-heading" class="eyebrow"></h2>
+        <ol id="trail-list" class="trail-list"></ol>
+        <span id="trail-hidden-count" class="caption"></span>
+      </section>
+    </div>
+
+    <!-- Reopen, Mark done and Delete; Delete asks first -->
+    <div id="detail-actions" class="detail-actions">
+      <button type="button" id="detail-reopen" class="button button-primary"></button>
+      <button type="button" id="detail-done" class="button button-secondary">Mark done</button>
+      <button type="button" id="detail-delete" class="button button-danger">Delete</button>
+    </div>
+    <div id="delete-confirm" class="delete-confirm" hidden>
+      <p class="delete-question">Delete this thread? This can't be undone.</p>
+      <div class="delete-confirm-buttons">
+        <button type="button" id="delete-cancel" class="button button-secondary">Cancel</button>
+        <button type="button" id="delete-yes" class="button button-danger-solid">Delete</button>
+      </div>
+    </div>
+  </div>
 
   <script src="../lib/threads.js"></script>
   <script src="../lib/storage.js"></script>
