@@ -22,7 +22,7 @@ The owner, Anshuraj, is a product and growth person, **not a software engineer**
 - **Vocabulary:** a task is a **thread** (never "session" or "workspace"). You **park** a thread and **pick it up** later. The pages visited are the **trail** (never "history"). The planned step is **Next**.
 - **The user's words come first.** A note the user wrote always shows above anything Griot inferred. Anything Griot drafts or guesses is labelled "Griot's guess" until the user edits or accepts it.
 - **Privacy:** everything stays on the device. Store data only with `chrome.storage.local`. No network requests, no remote fonts, no analytics, no external APIs.
-- **Permissions:** only `tabs`, `tabGroups`, `storage`, `idle`, and `favicon` (site icons from Chrome's local cache). Griot shows everything inside its own popup: no notifications. No `host_permissions`, no content scripts, no reading page content. Ask before adding any other permission.
+- **Permissions:** only `tabs`, `tabGroups` (the "You were here" tab label), `storage`, `idle`, `favicon` (site icons from Chrome's local cache) and `offscreen` (a hidden page that only plays the welcome back chime). Griot shows everything inside its own popup: no notifications. No `host_permissions`, no content scripts, no reading page content. Ask before adding any other permission.
 - **Not in scope:** search, accounts, sync, AI or LLM calls, page summaries, mobile, other browsers.
 
 ## Tech

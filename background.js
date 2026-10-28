@@ -1,8 +1,9 @@
 // Griot's background script: records the trail of pages visited in each window,
 // brings back a thread's tabs when you press Pick up, notices when you step away
 // from a window and come back (welcome back card), and keeps a window you close
-// so you can park it. It never shows anything itself: everything waits inside
-// Griot's popup, and a small dot on the icon says something is waiting.
+// so you can park it. It never opens anything itself: everything waits inside
+// Griot's popup. When you come back to a window it can play a soft chime, show how
+// long you were away on the icon, and label the tab you left as "You were here".
 // A visit is only the page's title, link and time. Griot never reads page content.
 
 importScripts('lib/storage.js', 'lib/threads.js');
@@ -130,6 +131,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   }
   if (message.type === 'reopen-tabs') reopenAndGo(message.tabs).catch(fail);
   if (message.type === 'go-to') goToPage(message.url, message.windowId).catch(fail);
+  if (message.type === 'clear-label') queueSave(clearTabLabel);
   return false;
 });
 
@@ -188,7 +190,61 @@ async function cameBackTo(windowId) {
 
   const guess = guessFromTrail(visits);
   await setWelcome({ ...guess, windowId, awayMinutes, returnedAt: Date.now(), shown: false });
+  if (settings.labelTab) await labelLeftTab(windowId, guess.stoppedAt.url);
+  if (settings.welcomeChime) playChime(); // not awaited, so recording visits never waits for the sound
 }
+
+// ---------- Chime and tab label ----------
+
+// Play the welcome back chime. A background script can't play sound, so Griot opens
+// a hidden page (offscreen/offscreen.html) just long enough to play it.
+async function playChime() {
+  try {
+    const open = await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'] });
+    if (open.length === 0) {
+      await chrome.offscreen.createDocument({
+        url: 'offscreen/offscreen.html',
+        reasons: ['AUDIO_PLAYBACK'],
+        justification: 'Play a short chime when you come back to a window.'
+      });
+    }
+    await chrome.runtime.sendMessage({ type: 'play-chime' });
+    await chrome.offscreen.closeDocument();
+  } catch (error) {
+    console.warn('Griot could not play the chime', error);
+  }
+}
+
+// Put the tab you left into a small ochre tab group called "You were here",
+// so you can spot it in the tab bar. Only if it isn't the tab you're on and isn't
+// already in one of your own groups. The label goes away when you open that tab.
+async function labelLeftTab(windowId, url) {
+  await clearTabLabel();
+  const tabs = await chrome.tabs.query({ windowId }).catch(() => []);
+  const tab = tabs.find((open) => pageAddress(open.url) === pageAddress(url));
+  if (!tab || tab.active || tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) return;
+  try {
+    const groupId = await chrome.tabs.group({ tabIds: [tab.id] });
+    await chrome.tabGroups.update(groupId, { title: 'You were here', color: 'orange', collapsed: false });
+    await chrome.storage.local.set({ labelledTab: tab.id });
+  } catch (error) {
+    console.warn('Griot could not label the tab', error);
+  }
+}
+
+// Take the "You were here" label off again.
+async function clearTabLabel() {
+  const { labelledTab } = await chrome.storage.local.get({ labelledTab: null });
+  if (labelledTab === null) return;
+  await chrome.storage.local.set({ labelledTab: null });
+  await chrome.tabs.ungroup(labelledTab).catch(() => {});
+}
+
+// Opening the labelled tab removes its label.
+chrome.tabs.onActivated.addListener(({ tabId }) => queueSave(async () => {
+  const { labelledTab } = await chrome.storage.local.get({ labelledTab: null });
+  if (labelledTab === tabId) await clearTabLabel();
+}));
 
 // You moved between windows, or between Chrome and another app.
 // The window you left gets a "left at" time; the window you came to is checked.

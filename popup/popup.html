@@ -11,7 +11,7 @@
 
   <!-- Screen 1: home, your parked threads -->
   <div id="home-screen" class="screen">
-    <header class="header">
+    <header class="header m-in" style="--i:0">
       <img class="wordmark" src="../assets/brand/griot-wordmark.svg" alt="Griot">
       <button type="button" class="icon-button settings-button" aria-label="Privacy and settings">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="2.5"></circle><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"></path></svg>
@@ -19,7 +19,7 @@
     </header>
 
     <main class="main">
-      <h1 class="title">Pick up where you left off</h1>
+      <h1 class="title m-in" style="--i:1">Pick up where you left off</h1>
       <!-- Shown for a moment after parking -->
       <p id="parked-message" class="saved-message" role="status" hidden>
         <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>
@@ -41,7 +41,7 @@
       <div id="thread-list" class="thread-list"></div>
     </main>
 
-    <footer class="footer">
+    <footer class="footer m-in" style="--i:6">
       <button type="button" id="open-park-card" class="button button-secondary">Park the thread I'm on</button>
       <p class="privacy-line">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2"></rect><path d="M7 9V6.5a3 3 0 0 1 6 0V9"></path></svg>
@@ -52,20 +52,20 @@
 
   <!-- Screen 2: the park card for the current window -->
   <form id="park-screen" class="screen park" hidden>
-    <div class="park-eyebrow-row">
+    <div class="park-eyebrow-row m-in" style="--i:0">
       <img src="../assets/brand/griot-mark.svg" alt="" class="park-mark">
       <span id="park-eyebrow" class="eyebrow">This window</span>
     </div>
 
-    <h1 class="title">Where were you headed?</h1>
+    <h1 class="title m-in" style="--i:1">Where were you headed?</h1>
 
-    <div class="field">
+    <div class="field m-in" style="--i:2">
       <label for="park-note" class="field-label">Your note</label>
       <textarea id="park-note" class="note-input" rows="2"></textarea>
       <span id="park-guess-hint" class="caption">Griot's guess from your tab titles. Make it yours.</span>
     </div>
 
-    <div class="field">
+    <div class="field m-in" style="--i:3">
       <label for="park-next" class="field-label">
         <span class="next-dot" aria-hidden="true"></span>
         Next step <span class="optional">(optional)</span>
@@ -74,12 +74,12 @@
     </div>
 
     <!-- The window's tabs. Only ticked tabs are saved with the thread -->
-    <fieldset class="park-tabs">
+    <fieldset class="park-tabs m-in" style="--i:4">
       <legend class="field-label">Tabs in this thread <span id="park-tab-count" class="optional"></span></legend>
       <ul id="park-tab-list" class="park-tab-list"></ul>
     </fieldset>
 
-    <div class="park-actions">
+    <div class="park-actions m-in" style="--i:6">
       <button type="button" id="park-not-now" class="button button-secondary">Not now</button>
       <button type="submit" id="park-submit" class="button button-primary">Park thread</button>
     </div>
@@ -87,7 +87,7 @@
 
   <!-- Screen 3: one thread's detail and trail -->
   <div id="detail-screen" class="screen" hidden>
-    <header class="detail-header">
+    <header class="detail-header m-in" style="--i:0">
       <button type="button" id="detail-back" class="back-button">
         <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"></path></svg>
         All threads
@@ -96,10 +96,10 @@
     </header>
 
     <div class="detail-body">
-      <p id="detail-note" class="detail-note"></p>
-      <div id="detail-next"></div>
+      <p id="detail-note" class="detail-note m-in" style="--i:1"></p>
+      <div id="detail-next" class="m-in" style="--i:2"></div>
 
-      <section class="trail-panel" aria-labelledby="trail-heading">
+      <section class="trail-panel m-in" style="--i:3" aria-labelledby="trail-heading">
         <h2 id="trail-heading" class="eyebrow"></h2>
         <ol id="trail-list" class="trail-list"></ol>
         <span id="trail-hidden-count" class="caption"></span>
@@ -107,7 +107,7 @@
     </div>
 
     <!-- Reopen, Mark done and Delete; Delete asks first -->
-    <div id="detail-actions" class="detail-actions">
+    <div id="detail-actions" class="detail-actions m-in" style="--i:4">
       <button type="button" id="detail-reopen" class="button button-primary"></button>
       <button type="button" id="detail-done" class="button button-secondary">Mark done</button>
       <button type="button" id="detail-delete" class="button button-danger">Delete</button>
@@ -123,7 +123,7 @@
 
   <!-- Screen 4: welcome back after a break. Everything on it is Griot's guess -->
   <div id="welcome-screen" class="screen" hidden>
-    <header class="header">
+    <header class="header m-in" style="--i:0">
       <img class="wordmark" src="../assets/brand/griot-wordmark.svg" alt="Griot">
       <button type="button" class="icon-button settings-button" aria-label="Privacy and settings">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="2.5"></circle><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"></path></svg>
@@ -131,18 +131,18 @@
     </header>
 
     <main class="main welcome-main">
-      <div class="welcome-heading">
+      <div class="welcome-heading m-in" style="--i:1">
         <span id="welcome-away" class="eyebrow"></span>
         <h1 class="title">Welcome back</h1>
       </div>
 
-      <article class="welcome-card">
-        <div id="welcome-guess" class="welcome-guess">
+      <article class="welcome-card m-in" style="--i:2">
+        <div id="welcome-guess" class="welcome-guess m-in" style="--i:4">
           <span class="caption">Griot's guess</span>
           <p id="welcome-guess-text" class="welcome-guess-text"></p>
         </div>
 
-        <div class="stopped-here">
+        <div class="stopped-here m-in" style="--i:5">
           <span class="stopped-dot" aria-hidden="true"></span>
           <div class="stopped-text">
             <span class="stopped-label">You stopped here</span>
@@ -151,15 +151,15 @@
           </div>
         </div>
 
-        <div id="welcome-next" class="next-line welcome-next">
+        <div id="welcome-next" class="next-line welcome-next m-in" style="--i:6">
           <span class="next-dot" aria-hidden="true"></span>
           <span><strong>Next (guess):</strong> <span id="welcome-next-text"></span></span>
         </div>
 
-        <span id="welcome-pages" class="caption"></span>
+        <span id="welcome-pages" class="caption m-in" style="--i:7"></span>
       </article>
 
-      <div class="welcome-actions">
+      <div class="welcome-actions m-in" style="--i:8">
         <button type="button" id="welcome-go" class="button button-primary welcome-go">
           <span id="welcome-go-text"></span>
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10h10M11 6l4 4-4 4"></path></svg>
@@ -171,7 +171,7 @@
       </div>
     </main>
 
-    <footer class="welcome-footer">
+    <footer class="welcome-footer m-in" style="--i:9">
       <p class="privacy-line">
         <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2"></rect><path d="M7 9V6.5a3 3 0 0 1 6 0V9"></path></svg>
         Built from page titles only. Everything stays on this device.
@@ -181,7 +181,7 @@
 
   <!-- Screen 5: "You were here", shown when you pick up a thread, while its tabs come back -->
   <div id="here-screen" class="screen" hidden>
-    <header class="detail-header">
+    <header class="detail-header m-in" style="--i:0">
       <button type="button" id="here-back" class="back-button">
         <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"></path></svg>
         All threads
@@ -189,9 +189,9 @@
       <span id="here-ready" class="caption"></span>
     </header>
     <main class="main">
-      <h1 class="title">You were here</h1>
+      <h1 class="title m-in" style="--i:1">You were here</h1>
 
-      <article class="welcome-card">
+      <article class="welcome-card m-in" style="--i:2">
         <p id="here-note" class="detail-note"></p>
 
         <div id="here-stopped" class="stopped-here">
@@ -206,7 +206,7 @@
         <div id="here-next"></div>
       </article>
 
-      <button type="button" id="here-ok" class="button button-primary welcome-go">
+      <button type="button" id="here-ok" class="button button-primary welcome-go m-in" style="--i:3">
         Take me there
         <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10h10M11 6l4 4-4 4"></path></svg>
       </button>
@@ -215,7 +215,7 @@
 
   <!-- Screen 6: privacy and settings -->
   <div id="settings-screen" class="screen" hidden>
-    <header class="settings-header">
+    <header class="settings-header m-in" style="--i:0">
       <button type="button" id="settings-back" class="icon-button settings-back" aria-label="Back to threads">
         <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"></path></svg>
       </button>
@@ -223,7 +223,7 @@
     </header>
 
     <div class="settings-body">
-      <div class="privacy-promise">
+      <div class="privacy-promise m-in" style="--i:1">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D9AE52" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2"></rect><path d="M7 9V6.5a3 3 0 0 1 6 0V9"></path></svg>
         <div class="privacy-promise-text">
           <strong>Everything stays on this device.</strong>
@@ -231,23 +231,39 @@
         </div>
       </div>
 
-      <section class="settings-section">
+      <section class="settings-section m-in" style="--i:2">
         <h2 class="eyebrow settings-heading">When to ask</h2>
         <label class="switch-row" for="setting-welcome">
           When I come back to a window after 10 minutes
-          <input type="checkbox" id="setting-welcome">
+          <input type="checkbox" class="switch" id="setting-welcome">
         </label>
         <label class="switch-row" for="setting-closed">
           When I close a window
-          <input type="checkbox" id="setting-closed">
+          <input type="checkbox" class="switch" id="setting-closed">
         </label>
         <label class="switch-row" for="setting-pause">
           Pause Griot for today
-          <input type="checkbox" id="setting-pause">
+          <input type="checkbox" class="switch" id="setting-pause">
         </label>
       </section>
 
-      <section class="settings-section">
+      <section class="settings-section m-in" style="--i:3">
+        <h2 class="eyebrow">Sound and reminders</h2>
+        <label class="switch-row" for="setting-chime">
+          Chime when I come back
+          <input type="checkbox" class="switch" id="setting-chime">
+        </label>
+        <label class="switch-row" for="setting-label">
+          Label the tab I left in the tab bar
+          <input type="checkbox" class="switch" id="setting-label">
+        </label>
+        <label class="switch-row" for="setting-sounds">
+          Sounds when I park, pick up or finish
+          <input type="checkbox" class="switch" id="setting-sounds">
+        </label>
+      </section>
+
+      <section class="settings-section m-in" style="--i:4">
         <h2 class="eyebrow">Never track these sites</h2>
         <div id="blocked-sites" class="site-chips"></div>
         <button type="button" id="add-site-button" class="button button-secondary small-button">Add a site</button>
@@ -261,7 +277,7 @@
         </form>
       </section>
 
-      <div id="delete-all-row" class="settings-bottom">
+      <div id="delete-all-row" class="settings-bottom m-in" style="--i:5">
         <button type="button" id="delete-all" class="button text-danger">Delete all threads and trails</button>
         <span id="settings-version" class="caption"></span>
       </div>
@@ -275,6 +291,7 @@
     </div>
   </div>
 
+  <script src="../lib/sound.js"></script>
   <script src="../lib/threads.js"></script>
   <script src="../lib/storage.js"></script>
   <script src="popup.js"></script>
