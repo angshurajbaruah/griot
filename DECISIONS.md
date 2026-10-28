@@ -15,3 +15,8 @@
 - 2026-10-28: Left the "Close these tabs after parking" checkbox off the park card for now. Closing tabs before "Pick up" exists (milestone 3) could lose them; revisit once threads can be reopened.
 - 2026-10-28: The park card's eyebrow says "This window" when you park by hand. "Away for 10 minutes" from the design only fits an idle prompt (milestone 5).
 - 2026-10-28: The draft note uses words repeated across tab titles ("Looking into Clay and Apollo."), or the current tab's name if nothing repeats. Simple, explainable, and always labelled as Griot's guess.
+- 2026-10-28: The home screen shows parked threads in place of the open-tabs list from milestone 1. The home design has no tab list, and the park card already shows the current window's tabs.
+- 2026-10-28: On home, the newest thread is a big "Continue thread" card with the brown Pick up button; older threads are small cards with an outlined Pick up, so there is one primary button per screen.
+- 2026-10-28: A thread stays on home after Pick up. Nothing in milestone 3 says it should go away, and "Mark done" (milestone 4) is how a thread leaves.
+- 2026-10-28: Finding from real use: drafts latched onto site names ("Google", "YouTube") and guessed a topic from one stray word. The draft now ignores each tab's own site name and plain numbers, and when no word repeats across tabs it uses the current tab's title as-is instead of guessing.
+- 2026-10-28: Site icons get a hairline border, because white icons disappeared against the light background.

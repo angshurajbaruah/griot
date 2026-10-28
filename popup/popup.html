@@ -9,8 +9,8 @@
   <!-- The woven triangle strip along the top edge -->
   <div class="border-strip" aria-hidden="true"></div>
 
-  <!-- Screen 1: open tabs, grouped by window -->
-  <div id="tabs-screen" class="screen">
+  <!-- Screen 1: home, your parked threads -->
+  <div id="home-screen" class="screen">
     <header class="header">
       <img class="wordmark" src="../assets/brand/griot-wordmark.svg" alt="Griot">
       <!-- Settings come in a later milestone; the button is here so the header matches the design -->
@@ -20,14 +20,14 @@
     </header>
 
     <main class="main">
-      <h1 class="title">Your open tabs</h1>
+      <h1 class="title">Pick up where you left off</h1>
       <!-- Shown for a moment after parking -->
       <p id="parked-message" class="saved-message" role="status" hidden>
         <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>
         Thread parked.
       </p>
-      <!-- popup.js fills this with one section per window -->
-      <div id="window-list" class="window-list"></div>
+      <!-- popup.js fills this with one card per parked thread -->
+      <div id="thread-list" class="thread-list"></div>
     </main>
 
     <footer class="footer">
