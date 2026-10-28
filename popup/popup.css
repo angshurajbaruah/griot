@@ -1,0 +1,221 @@
+/* Design tokens from CLAUDE.md */
+:root {
+  --paper: #F4EBDD;          /* popup background */
+  --surface-raised: #FBF6EE; /* cards, inputs */
+  --sand-stone: #E8D7B7;     /* wells, trail panel */
+  --ink: #3E2A1C;            /* main text */
+  --ink-muted: #6B5442;      /* timestamps, helper text, guesses */
+  --hairline: #D9C7A7;       /* dividers, card outlines */
+  --line-strong: #8C765A;    /* input and secondary button borders */
+  --action: #3E2A1C;         /* primary buttons, links, focus ring (earth brown) */
+  --on-action: #FBF6EE;      /* text on primary buttons */
+  --ochre: #C89B3C;          /* the dot that marks where you left off */
+  --ochre-ink: #7A5A12;      /* the "Next:" label */
+  --ochre-soft: #F1E0B8;     /* background of the Next line */
+  --terracotta: #A64F2E;     /* small accents, link hover */
+  --forest: #2F4A3A;         /* done / saved states, always with a word */
+  --danger: #8E2F1C;         /* delete actions, always with a word */
+
+  /* Font stacks. The bundled fonts come later; until then these fall back to Georgia and system-ui */
+  --font-title: 'BackOut', Georgia, serif;
+  --font-reading: 'Source Serif 4', Georgia, serif;
+  --font-ui: 'Instrument Sans', system-ui, sans-serif;
+}
+
+/* Popup frame: 380px wide, never taller than 600px */
+html, body {
+  margin: 0;
+  width: 380px;
+  max-height: 600px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-reading);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* One focus ring for everything you can tab to */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--action);
+  outline-offset: 2px;
+}
+
+/* Header: triangle strip, then wordmark and settings button */
+.border-strip {
+  height: 14px;
+  flex-shrink: 0;
+  background-image: url("../assets/brand/border-triangles.svg");
+  background-repeat: repeat-x;
+  background-size: 28px 14px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.wordmark {
+  height: 18px;
+  width: auto;
+  display: block;
+}
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--sand-stone);
+}
+
+.icon-button[aria-disabled="true"] {
+  cursor: default;
+}
+
+/* Main area scrolls when there are many tabs */
+.main {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 26px;
+  line-height: 30px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.window-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Small uppercase label above each window's card */
+.eyebrow {
+  margin: 0 0 8px;
+  font-family: var(--font-title);
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* One card per window */
+.tab-card {
+  list-style: none;
+  margin: 0;
+  padding: 4px 16px;
+  background: var(--surface-raised);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+}
+
+.tab-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  font-family: var(--font-ui);
+}
+
+.tab-row + .tab-row {
+  border-top: 1px solid var(--hairline);
+}
+
+/* Favicon, or a letter chip when the icon would need the internet */
+.tab-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.tab-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sand-stone);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.tab-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-title,
+.tab-site {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-title {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.tab-site {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-muted);
+}
+
+/* The ochre dot marks the tab you are on right now */
+.tab-active-dot {
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--ochre);
+}
+
+.empty-note {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-muted);
+}
