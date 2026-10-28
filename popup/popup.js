@@ -1,6 +1,7 @@
-// Griot popup: home (parked threads), the park card, and a thread's detail and trail.
-// Uses cleanTitle, shortTitle, draftNote, draftTitle, sharesWordWithNote, faviconFor (lib/threads.js)
-// and getThreads, saveThread, updateThread, deleteThread, getTrail (lib/storage.js).
+// Griot popup: home (parked threads), the park card, a thread's detail and trail,
+// and the welcome back card after a break.
+// Uses cleanTitle, shortTitle, draftNote, draftTitle, sharesWordWithNote, faviconFor, awayText (lib/threads.js)
+// and the thread, trail, welcome and popup-request helpers in lib/storage.js.
 
 // Pages that are not part of a thread, like an empty new tab.
 const SKIPPED_URLS = ['chrome://newtab/', 'about:blank'];
@@ -16,6 +17,10 @@ let parkCardTabs = [];
 
 // The thread open on the detail screen.
 let openThread = null;
+
+// The welcome back card on screen, and the closed window being parked (if any).
+let shownWelcome = null;
+let parkingClosedWindow = false;
 
 // ---------- Small helpers ----------
 
@@ -68,11 +73,12 @@ function parkedTimeText(time, short) {
   return `${day}, ${clockText(time)}`;
 }
 
-// Show one screen ("home", "park" or "detail") and hide the others.
+// Show one screen ("home", "park", "detail" or "welcome") and hide the others.
 function showScreen(name) {
   document.getElementById('home-screen').hidden = name !== 'home';
   document.getElementById('park-screen').hidden = name !== 'park';
   document.getElementById('detail-screen').hidden = name !== 'detail';
+  document.getElementById('welcome-screen').hidden = name !== 'welcome';
 }
 
 // Go back home and show a short green message, like "Thread parked."
@@ -232,19 +238,23 @@ function updateTickedCount() {
   document.getElementById('park-submit').disabled = count === 0;
 }
 
-// Fill the park card for the current window and show it.
-// The tab you are on, and tabs that share a word with the note, start ticked.
-async function openParkCard() {
-  parkCardTabs = await getCurrentWindowTabs();
+// Fill the park card and show it. By default it lists the tabs of the window you are in.
+// Options: tabs (a list to use instead), eyebrow (the small label on top),
+// emptyNote (start with an empty note box, for "That's not it").
+// The tab you are on, and tabs that share a word with Griot's draft, start ticked.
+async function openParkCard(options = {}) {
+  parkCardTabs = options.tabs || await getCurrentWindowTabs();
   const activeTab = parkCardTabs.find((tab) => tab.active);
 
-  draftedNote = draftNote(parkCardTabs, activeTab);
+  draftedNote = options.emptyNote ? '' : draftNote(parkCardTabs, activeTab);
+  const tickingNote = draftNote(parkCardTabs, activeTab);
+  document.getElementById('park-eyebrow').textContent = options.eyebrow || 'This window';
   document.getElementById('park-note').value = draftedNote;
   document.getElementById('park-guess-hint').hidden = draftedNote === '';
   document.getElementById('park-next').value = '';
 
   const rows = parkCardTabs.map((tab, index) =>
-    makeParkTabRow(tab, index, tab.active || sharesWordWithNote(tab, draftedNote)));
+    makeParkTabRow(tab, index, tab.active || sharesWordWithNote(tab, tickingNote)));
   document.getElementById('park-tab-list').replaceChildren(...rows);
   updateTickedCount();
 
@@ -295,6 +305,8 @@ async function parkThread(event) {
     status: 'parked'
   });
 
+  if (parkingClosedWindow) await setClosedWindow(null);
+  parkingClosedWindow = false;
   await goHome('Thread parked.');
 }
 
@@ -376,11 +388,126 @@ async function deleteOpenThread() {
   await goHome('Thread deleted.');
 }
 
+// ---------- Welcome back ----------
+
+// Griot's guess as a sentence, with the product names in bold.
+function makeGuessText(welcome) {
+  const text = document.getElementById('welcome-guess-text');
+  if (welcome.compared) {
+    const [first, second] = welcome.compared;
+    text.replaceChildren('Looks like you were comparing ', makeText('strong', '', first), ' and ',
+      makeText('strong', '', second), '.');
+  } else if (welcome.topic) {
+    text.replaceChildren('Looks like you were looking into ', makeText('strong', '', welcome.topic), '.');
+  }
+}
+
+// The site a page is on, like "youtube.com", for the line under "You stopped here".
+function siteName(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+// Fill the welcome back screen from the saved card and show it.
+async function showWelcome(welcome) {
+  shownWelcome = welcome;
+  await setWelcome({ ...welcome, shown: true });
+
+  document.getElementById('welcome-away').textContent = `Away for ${awayText(welcome.awayMinutes)}`;
+  document.getElementById('welcome-guess').hidden = !welcome.compared && !welcome.topic;
+  makeGuessText(welcome);
+
+  const stopped = welcome.stoppedAt;
+  document.getElementById('welcome-stopped-title').textContent = shortTitle(stopped.title) || stopped.url;
+  document.getElementById('welcome-stopped-meta').textContent = `${siteName(stopped.url)} · ${clockText(stopped.time)}`;
+
+  document.getElementById('welcome-next').hidden = !welcome.next;
+  document.getElementById('welcome-next-text').textContent = welcome.next ? lowerFirst(welcome.next) : '';
+
+  const pages = welcome.pages;
+  const first = pages.reduce((earliest, visit) => Math.min(earliest, visit.time), Infinity);
+  document.getElementById('welcome-pages').textContent =
+    `${pages.length} ${pages.length === 1 ? 'page' : 'pages'} · ${clockText(first)} to ${clockText(stopped.time)}`;
+
+  document.getElementById('welcome-go-text').textContent = welcome.goTo
+    ? `Go to ${welcome.goTo.name}` : 'Go to where you stopped';
+  document.getElementById('welcome-reopen').textContent = `Reopen all ${pages.length}`;
+
+  showScreen('welcome');
+  document.getElementById('welcome-go').focus();
+}
+
+// "Sign up for Product X?" becomes "sign up for Product X?" after "Next (guess):".
+function lowerFirst(text) {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+// Done with the welcome back card: forget it so it does not show again.
+async function forgetWelcome() {
+  await setWelcome(null);
+}
+
+// Go to the page Griot thinks matters most: the product's site, or where you stopped.
+async function welcomeGoTo() {
+  const visit = shownWelcome.goTo ? shownWelcome.goTo.visit : shownWelcome.stoppedAt;
+  await forgetWelcome();
+  chrome.runtime.sendMessage({ type: 'go-to', url: visit.url, windowId: shownWelcome.windowId });
+  window.close();
+}
+
+// Bring back every page from before the break, selecting where you stopped.
+async function welcomeReopenAll() {
+  const activeUrl = pageAddress(shownWelcome.stoppedAt.url);
+  const tabs = shownWelcome.pages.map((visit) => ({ url: visit.url, active: pageAddress(visit.url) === activeUrl }));
+  await forgetWelcome();
+  chrome.runtime.sendMessage({ type: 'reopen-tabs', tabs });
+  window.close();
+}
+
+// "That's not it": open the park card for that window with an empty note,
+// so you can say in your own words what you were doing.
+async function welcomeNotIt() {
+  await forgetWelcome();
+  const tabs = await chrome.tabs.query({ windowId: shownWelcome.windowId }).catch(() => []);
+  const windowTabs = tabs.filter((tab) => !SKIPPED_URLS.includes(tab.url));
+  await openParkCard({ tabs: windowTabs.length > 0 ? windowTabs : undefined, emptyNote: true });
+}
+
+// ---------- Opening on the right screen ----------
+
+// Choose the first screen: the one a shortcut or notification asked for,
+// a welcome back card you have not seen yet, or home.
+async function start() {
+  const request = await getPopupRequest();
+  if (request) await setPopupRequest(null);
+
+  if (request === 'park') return openParkCard();
+
+  if (request === 'park-closed') {
+    const closed = await getClosedWindow();
+    if (closed) {
+      parkingClosedWindow = true;
+      return openParkCard({ tabs: closed.tabs, eyebrow: 'Window you closed' });
+    }
+  }
+
+  const welcome = await getWelcome();
+  if (welcome && (request === 'welcome' || !welcome.shown)) return showWelcome(welcome);
+
+  return goHome();
+}
+
 // ---------- Buttons ----------
 
-document.getElementById('open-park-card').addEventListener('click', openParkCard);
+document.getElementById('open-park-card').addEventListener('click', () => openParkCard());
 document.getElementById('park-note').addEventListener('input', onNoteEdited);
-document.getElementById('park-not-now').addEventListener('click', () => goHome());
+document.getElementById('park-not-now').addEventListener('click', () => {
+  parkingClosedWindow = false;
+  goHome();
+});
 document.getElementById('park-screen').addEventListener('submit', parkThread);
 
 document.getElementById('detail-back').addEventListener('click', () => goHome());
@@ -390,4 +517,8 @@ document.getElementById('detail-delete').addEventListener('click', () => showDel
 document.getElementById('delete-cancel').addEventListener('click', () => showDeleteConfirm(false));
 document.getElementById('delete-yes').addEventListener('click', deleteOpenThread);
 
-showHome();
+document.getElementById('welcome-go').addEventListener('click', welcomeGoTo);
+document.getElementById('welcome-reopen').addEventListener('click', welcomeReopenAll);
+document.getElementById('welcome-not-it').addEventListener('click', welcomeNotIt);
+
+start();
