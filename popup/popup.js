@@ -25,9 +25,11 @@ let parkingClosedWindow = false;
 // ---------- Small helpers ----------
 
 // Get the tabs of the window you are in, leaving out empty new tabs.
+// Sites you never want tracked (and banking and health sites) are left out.
 async function getCurrentWindowTabs() {
+  const settings = await getSettings();
   const tabs = await chrome.tabs.query({ currentWindow: true });
-  return tabs.filter((tab) => !SKIPPED_URLS.includes(tab.url));
+  return tabs.filter((tab) => !SKIPPED_URLS.includes(tab.url) && !isBlockedSite(tab.url, settings));
 }
 
 // Make a site icon image from Chrome's local favicon store.
@@ -73,12 +75,14 @@ function parkedTimeText(time, short) {
   return `${day}, ${clockText(time)}`;
 }
 
-// Show one screen ("home", "park", "detail" or "welcome") and hide the others.
+// Show one screen ("home", "park", "detail", "welcome", "here" or "settings") and hide the others.
 function showScreen(name) {
   document.getElementById('home-screen').hidden = name !== 'home';
   document.getElementById('park-screen').hidden = name !== 'park';
   document.getElementById('detail-screen').hidden = name !== 'detail';
   document.getElementById('welcome-screen').hidden = name !== 'welcome';
+  document.getElementById('here-screen').hidden = name !== 'here';
+  document.getElementById('settings-screen').hidden = name !== 'settings';
 }
 
 // Go back home and show a short green message, like "Thread parked."
@@ -176,6 +180,7 @@ function makeSmallCard(thread) {
 
 // Draw the parked threads on the home screen, newest first. Done threads are left out.
 async function showHome() {
+  await showHomeNotices();
   const container = document.getElementById('thread-list');
   container.replaceChildren();
   const threads = (await getThreads())
@@ -197,13 +202,54 @@ async function showHome() {
   }
 }
 
+// The lines above the threads: "Griot is paused" and the offer to park a window you closed.
+async function showHomeNotices() {
+  const settings = await getSettings();
+  document.getElementById('paused-line').hidden = !isPaused(settings);
+
+  const closed = await getClosedWindow();
+  document.getElementById('closed-window').hidden = !closed;
+  if (closed) {
+    document.getElementById('closed-window-text').textContent =
+      `You closed a window with ${tabCountText(closed.tabs.length)}. Park it so you can pick it up later?`;
+  }
+}
+
+// Open the park card for the window you closed.
+function parkClosedWindow() {
+  getClosedWindow().then((closed) => {
+    if (!closed) return goHome();
+    parkingClosedWindow = true;
+    return openParkCard({ tabs: closed.tabs, eyebrow: 'Window you closed' });
+  });
+}
+
+// "Not now" on the closed-window offer: forget that window.
+async function dismissClosedWindow() {
+  await setClosedWindow(null);
+  await goHome();
+}
+
 // ---------- Pick up ----------
 
-// Ask Griot's background script to bring back the thread's tabs, then close the popup.
-// The background does the work so it still finishes after Chrome switches windows,
-// and it shows the "You were here" notification once the tab is in front.
-function pickUpThread(thread) {
-  chrome.runtime.sendMessage({ type: 'pick-up', threadId: thread.id });
+// Where "Take me there" goes: { windowId, url } of the tab you were on.
+let takeMeThere = null;
+
+// Pick up a thread: show "You were here" right away, while Griot's background script
+// quietly brings the tabs back into this window (or the window that already has them).
+// Chrome closes this popup when it switches tabs, so the switch waits for "Take me there".
+async function pickUpThread(thread) {
+  takeMeThere = null;
+  await showHere(thread);
+  const place = await chrome.runtime.sendMessage({ type: 'pick-up', threadId: thread.id });
+  takeMeThere = place;
+  document.getElementById('here-ok').disabled = !place;
+}
+
+// Jump to the tab you were on when you parked the thread.
+function goToPickedUpTab() {
+  if (!takeMeThere) return;
+  chrome.runtime.sendMessage({ type: 'go-to', url: takeMeThere.url, windowId: takeMeThere.windowId });
   window.close();
 }
 
@@ -476,9 +522,117 @@ async function welcomeNotIt() {
   await openParkCard({ tabs: windowTabs.length > 0 ? windowTabs : undefined, emptyNote: true });
 }
 
+// ---------- You were here ----------
+
+// Show the "You were here" card for a thread you are picking up:
+// your note (or Griot's guess), the last page you were on, and your next step.
+async function showHere(thread) {
+  document.getElementById('here-ready').textContent = `${tabCountText(thread.tabs.length)} ready`;
+  document.getElementById('here-ok').disabled = true;
+
+  const note = document.getElementById('here-note');
+  note.textContent = thread.noteIsGuess ? `Griot's guess: ${thread.note}` : thread.note || thread.title;
+  note.classList.toggle('is-guess', Boolean(thread.noteIsGuess));
+
+  const trail = thread.trail || [];
+  const stopped = trail[trail.length - 1] || thread.tabs.find((tab) => tab.active);
+  document.getElementById('here-stopped').hidden = !stopped;
+  if (stopped) {
+    document.getElementById('here-stopped-title').textContent = shortTitle(stopped.title) || stopped.url;
+    document.getElementById('here-stopped-meta').textContent =
+      stopped.time ? `${siteName(stopped.url)} · ${clockText(stopped.time)}` : siteName(stopped.url);
+  }
+
+  document.getElementById('here-next').replaceChildren(...(thread.next ? [makeNextLine(thread.next)] : []));
+  showScreen('here');
+  document.getElementById('here-ok').focus();
+}
+
+// ---------- Privacy and settings ----------
+
+// Fill the settings screen from the saved settings and show it.
+async function showSettings() {
+  const settings = await getSettings();
+  document.getElementById('setting-welcome').checked = settings.welcomeBack;
+  document.getElementById('setting-closed').checked = settings.closedWindowPrompt;
+  document.getElementById('setting-pause').checked = isPaused(settings);
+  showBlockedSites(settings);
+  document.getElementById('add-site-form').hidden = true;
+  document.getElementById('add-site-button').hidden = false;
+  showDeleteAllConfirm(false);
+  document.getElementById('settings-version').textContent = `Griot ${chrome.runtime.getManifest().version} · open source`;
+  showScreen('settings');
+  document.getElementById('settings-back').focus();
+}
+
+// Save a switch as soon as it changes.
+async function onSettingChanged(event) {
+  const id = event.target.id;
+  if (id === 'setting-welcome') await updateSettings({ welcomeBack: event.target.checked });
+  if (id === 'setting-closed') await updateSettings({ closedWindowPrompt: event.target.checked });
+  if (id === 'setting-pause') await updateSettings({ pausedUntil: event.target.checked ? endOfToday() : 0 });
+}
+
+// Show the "never track" chips: banking and health (always), then the sites you added.
+function showBlockedSites(settings) {
+  const chips = [makeText('span', 'site-chip', 'Banking and health sites ')];
+  chips[0].append(makeText('span', 'optional', '(default)'));
+  settings.blockedSites.forEach((site) => {
+    const chip = makeText('span', 'site-chip', site);
+    const remove = makeText('button', 'chip-remove', '×');
+    remove.type = 'button';
+    remove.setAttribute('aria-label', `Remove ${site}`);
+    remove.addEventListener('click', () => removeBlockedSite(site));
+    chip.append(remove);
+    chips.push(chip);
+  });
+  document.getElementById('blocked-sites').replaceChildren(...chips);
+}
+
+// Show the box for typing a site.
+function openAddSite() {
+  document.getElementById('add-site-button').hidden = true;
+  document.getElementById('add-site-form').hidden = false;
+  document.getElementById('add-site-input').value = '';
+  document.getElementById('add-site-input').focus();
+}
+
+// Add a site to the "never track" list and remove its pages from every trail.
+async function addBlockedSite(event) {
+  event.preventDefault();
+  const site = cleanSite(document.getElementById('add-site-input').value);
+  if (!site) return;
+  const settings = await getSettings();
+  const blockedSites = settings.blockedSites.includes(site) ? settings.blockedSites : [...settings.blockedSites, site];
+  const saved = await updateSettings({ blockedSites });
+  await removeSiteFromTrails(saved);
+  showBlockedSites(saved);
+  document.getElementById('add-site-form').hidden = true;
+  document.getElementById('add-site-button').hidden = false;
+}
+
+// Take a site off the "never track" list.
+async function removeBlockedSite(site) {
+  const settings = await getSettings();
+  showBlockedSites(await updateSettings({ blockedSites: settings.blockedSites.filter((saved) => saved !== site) }));
+}
+
+// Swap "Delete all threads and trails" for the "Are you sure?" question, or back.
+function showDeleteAllConfirm(show) {
+  document.getElementById('delete-all-row').hidden = show;
+  document.getElementById('delete-all-confirm').hidden = !show;
+  if (show) document.getElementById('delete-all-cancel').focus();
+}
+
+// Delete everything Griot has saved (only after you confirmed).
+async function deleteAll() {
+  await deleteEverything();
+  await goHome('Everything deleted.');
+}
+
 // ---------- Opening on the right screen ----------
 
-// Choose the first screen: the one a shortcut or notification asked for,
+// Choose the first screen: the park card if you pressed the shortcut,
 // a welcome back card you have not seen yet, or home.
 async function start() {
   const request = await getPopupRequest();
@@ -518,7 +672,25 @@ document.getElementById('delete-cancel').addEventListener('click', () => showDel
 document.getElementById('delete-yes').addEventListener('click', deleteOpenThread);
 
 document.getElementById('welcome-go').addEventListener('click', welcomeGoTo);
+document.getElementById('closed-window-park').addEventListener('click', parkClosedWindow);
+document.getElementById('closed-window-dismiss').addEventListener('click', dismissClosedWindow);
+
+document.querySelectorAll('.settings-button').forEach((button) => button.addEventListener('click', showSettings));
+document.getElementById('settings-back').addEventListener('click', () => goHome());
+['setting-welcome', 'setting-closed', 'setting-pause'].forEach((id) =>
+  document.getElementById(id).addEventListener('change', onSettingChanged));
+document.getElementById('add-site-button').addEventListener('click', openAddSite);
+document.getElementById('add-site-form').addEventListener('submit', addBlockedSite);
+document.getElementById('add-site-cancel').addEventListener('click', () => {
+  document.getElementById('add-site-form').hidden = true;
+  document.getElementById('add-site-button').hidden = false;
+});
+document.getElementById('delete-all').addEventListener('click', () => showDeleteAllConfirm(true));
+document.getElementById('delete-all-cancel').addEventListener('click', () => showDeleteAllConfirm(false));
+document.getElementById('delete-all-yes').addEventListener('click', deleteAll);
 document.getElementById('welcome-reopen').addEventListener('click', welcomeReopenAll);
 document.getElementById('welcome-not-it').addEventListener('click', welcomeNotIt);
+document.getElementById('here-ok').addEventListener('click', goToPickedUpTab);
+document.getElementById('here-back').addEventListener('click', () => goHome());
 
 start();
