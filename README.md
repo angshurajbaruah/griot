@@ -2,7 +2,7 @@
 
 **Your context lives on.**
 
-Griot is a Chrome extension for the moment you come back to a window full of tabs and can't remember what you were doing. When you step away, it keeps a one-line note of where you were headed. When you come back, it shows that note, the page you stopped on and the trail of pages that got you there, and takes you back in one click.
+Griot is a Chrome extension for the moment you come back to a window full of tabs and can't remember what you were doing. It quietly keeps the trail of pages you visit in each window. Come back after a break and it shows the page you stopped on, a guess at what you were doing, and takes you back in one click. If you want it to remember why, park the thread with one line in your own words before you leave.
 
 Everything stays on your computer. Griot reads tab titles and links, never what's on the page.
 
