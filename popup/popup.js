@@ -68,11 +68,6 @@ function parkedTimeText(time, short) {
   return `${day}, ${clockText(time)}`;
 }
 
-// A link without its #section part, so the same page always matches.
-function pageAddress(url) {
-  return (url || '').split('#')[0];
-}
-
 // Show one screen ("home", "park" or "detail") and hide the others.
 function showScreen(name) {
   document.getElementById('home-screen').hidden = name !== 'home';
@@ -198,45 +193,12 @@ async function showHome() {
 
 // ---------- Pick up ----------
 
-// Find an open window that already has at least half of the thread's tabs.
-async function findWindowWithThread(thread) {
-  const wanted = new Set(thread.tabs.map((tab) => pageAddress(tab.url)));
-  const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
-  let best = null;
-  let bestCount = 0;
-  windows.forEach((win) => {
-    const count = new Set(win.tabs.map((tab) => pageAddress(tab.url)).filter((url) => wanted.has(url))).size;
-    if (count > bestCount) {
-      best = win;
-      bestCount = count;
-    }
-  });
-  return bestCount * 2 >= wanted.size ? best : null;
-}
-
-// Bring back a thread's tabs and select the tab you were on when you parked.
-// If they are already open, switch to that window and add only the missing tabs.
-async function pickUpThread(thread) {
-  const activeUrl = pageAddress((thread.tabs.find((tab) => tab.active) || thread.tabs[0]).url);
-  const existing = await findWindowWithThread(thread);
-
-  if (existing) {
-    const openUrls = new Set(existing.tabs.map((tab) => pageAddress(tab.url)));
-    const missing = thread.tabs.filter((tab) => !openUrls.has(pageAddress(tab.url)));
-    for (const tab of missing) {
-      await chrome.tabs.create({ windowId: existing.id, url: tab.url, active: false });
-    }
-    const tabs = await chrome.tabs.query({ windowId: existing.id });
-    const target = tabs.find((tab) => pageAddress(tab.url) === activeUrl);
-    if (target) await chrome.tabs.update(target.id, { active: true });
-    await chrome.windows.update(existing.id, { focused: true });
-    return;
-  }
-
-  const newWindow = await chrome.windows.create({ url: thread.tabs.map((tab) => tab.url), focused: true });
-  const activeIndex = Math.max(0, thread.tabs.findIndex((tab) => tab.active));
-  const target = newWindow.tabs[activeIndex];
-  if (target) await chrome.tabs.update(target.id, { active: true });
+// Ask Griot's background script to bring back the thread's tabs, then close the popup.
+// The background does the work so it still finishes after Chrome switches windows,
+// and it shows the "You were here" notification once the tab is in front.
+function pickUpThread(thread) {
+  chrome.runtime.sendMessage({ type: 'pick-up', threadId: thread.id });
+  window.close();
 }
 
 // ---------- Park card ----------
