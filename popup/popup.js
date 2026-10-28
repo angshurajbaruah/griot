@@ -297,6 +297,13 @@ function onNoteEdited() {
   document.getElementById('park-guess-hint').hidden = note === '' || note !== draftedNote;
 }
 
+// Drop a page from the trail when it repeats the page just before it.
+// This happens when an unticked tab sat between two visits to the same page.
+function withoutRepeats(trail) {
+  return trail.filter((visit, index) =>
+    index === 0 || pageAddress(visit.url) !== pageAddress(trail[index - 1].url));
+}
+
 // Save the ticked tabs as a parked thread, with the window's trail, then go back home.
 async function parkThread(event) {
   event.preventDefault();
@@ -321,7 +328,7 @@ async function parkThread(event) {
       favIconUrl: tab.favIconUrl || '',
       active: tab === activeTab
     })),
-    trail: windowTrail.filter((visit) => !untickedUrls.has(pageAddress(visit.url))),
+    trail: withoutRepeats(windowTrail.filter((visit) => !untickedUrls.has(pageAddress(visit.url)))),
     parkedAt: Date.now(),
     status: 'parked'
   });

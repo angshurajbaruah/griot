@@ -28,3 +28,5 @@
 - 2026-10-28: Trails are cleared when Chrome starts, because Chrome reuses window numbers after a restart and old trails would mix with new windows.
 - 2026-10-28: Parking copies the window's trail into the thread, minus visits to tabs you unticked, so an unrelated tab does not leak into the story.
 - 2026-10-28: Delete asks inside the screen ("Delete this thread? This can't be undone.") rather than with a browser pop-up, so it matches the design and keeps focus in the popup.
+- 2026-10-28: Review finding: after unticked tabs were removed from the trail, the same page could appear twice in a row (YouTube, Netflix unticked, YouTube). Parking now merges a page that repeats the one just before it.
+- 2026-10-28: Review finding: the guess said "Looking into Product." because short words like "X" were skipped. If the top topic word is usually followed by the same word in enough tabs, the draft keeps both ("Looking into Product X."). A grown phrase is the whole topic, so it never reads "Morocco national and team".
