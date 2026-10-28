@@ -9,25 +9,72 @@
   <!-- The woven triangle strip along the top edge -->
   <div class="border-strip" aria-hidden="true"></div>
 
-  <header class="header">
-    <img class="wordmark" src="../assets/brand/griot-wordmark.svg" alt="Griot">
-    <!-- Settings come in a later milestone; the button is here so the header matches the design -->
-    <button type="button" class="icon-button" aria-label="Privacy and settings" aria-disabled="true" title="Settings are coming soon">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="2.5"></circle><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"></path></svg>
-    </button>
-  </header>
+  <!-- Screen 1: open tabs, grouped by window -->
+  <div id="tabs-screen" class="screen">
+    <header class="header">
+      <img class="wordmark" src="../assets/brand/griot-wordmark.svg" alt="Griot">
+      <!-- Settings come in a later milestone; the button is here so the header matches the design -->
+      <button type="button" class="icon-button" aria-label="Privacy and settings" aria-disabled="true" title="Settings are coming soon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="2.5"></circle><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"></path></svg>
+      </button>
+    </header>
 
-  <main class="main">
-    <h1 class="title">Your open tabs</h1>
-    <!-- popup.js fills this with one section per window -->
-    <div id="window-list" class="window-list"></div>
-  </main>
+    <main class="main">
+      <h1 class="title">Your open tabs</h1>
+      <!-- Shown for a moment after parking -->
+      <p id="parked-message" class="saved-message" role="status" hidden>
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>
+        Thread parked.
+      </p>
+      <!-- popup.js fills this with one section per window -->
+      <div id="window-list" class="window-list"></div>
+    </main>
 
-  <footer class="footer">
-    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2"></rect><path d="M7 9V6.5a3 3 0 0 1 6 0V9"></path></svg>
-    Everything stays on this device.
-  </footer>
+    <footer class="footer">
+      <button type="button" id="open-park-card" class="button button-secondary">Park the thread I'm on</button>
+      <p class="privacy-line">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2"></rect><path d="M7 9V6.5a3 3 0 0 1 6 0V9"></path></svg>
+        Everything stays on this device.
+      </p>
+    </footer>
+  </div>
 
+  <!-- Screen 2: the park card for the current window -->
+  <form id="park-screen" class="screen park" hidden>
+    <div class="park-eyebrow-row">
+      <img src="../assets/brand/griot-mark.svg" alt="" class="park-mark">
+      <span class="eyebrow">This window</span>
+    </div>
+
+    <h1 class="title">Where were you headed?</h1>
+
+    <div class="park-tabs">
+      <div id="park-favicons" class="park-favicons" aria-hidden="true"></div>
+      <span id="park-tab-count" class="caption"></span>
+    </div>
+
+    <div class="field">
+      <label for="park-note" class="field-label">Your note</label>
+      <textarea id="park-note" class="note-input" rows="3"></textarea>
+      <span id="park-guess-hint" class="caption">Griot's guess from your tab titles. Make it yours.</span>
+    </div>
+
+    <div class="field">
+      <label for="park-next" class="field-label">
+        <span class="next-dot" aria-hidden="true"></span>
+        Next step <span class="optional">(optional)</span>
+      </label>
+      <input id="park-next" class="text-input" type="text">
+    </div>
+
+    <div class="park-actions">
+      <button type="button" id="park-not-now" class="button button-secondary">Not now</button>
+      <button type="submit" class="button button-primary">Park thread</button>
+    </div>
+  </form>
+
+  <script src="../lib/threads.js"></script>
+  <script src="../lib/storage.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
