@@ -13,8 +13,7 @@
   <div id="home-screen" class="screen">
     <header class="header">
       <img class="wordmark" src="../assets/brand/griot-wordmark.svg" alt="Griot">
-      <!-- Settings come in a later milestone; the button is here so the header matches the design -->
-      <button type="button" class="icon-button" aria-label="Privacy and settings" aria-disabled="true" title="Settings are coming soon">
+      <button type="button" class="icon-button settings-button" aria-label="Privacy and settings">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="2.5"></circle><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"></path></svg>
       </button>
     </header>
@@ -26,6 +25,18 @@
         <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5l4 4 8-9"></path></svg>
         <span id="parked-message-text">Thread parked.</span>
       </p>
+      <!-- "Griot is paused", shown while paused -->
+      <p id="paused-line" class="caption paused-line" hidden>Griot is paused until tomorrow. Nothing is being recorded.</p>
+
+      <!-- The offer to park a window you closed (lasts an hour) -->
+      <section id="closed-window" class="closed-window" hidden>
+        <p id="closed-window-text" class="closed-window-text"></p>
+        <div class="closed-window-buttons">
+          <button type="button" id="closed-window-dismiss" class="button button-secondary">Not now</button>
+          <button type="button" id="closed-window-park" class="button button-secondary">Park it</button>
+        </div>
+      </section>
+
       <!-- popup.js fills this with one card per parked thread -->
       <div id="thread-list" class="thread-list"></div>
     </main>
@@ -114,7 +125,7 @@
   <div id="welcome-screen" class="screen" hidden>
     <header class="header">
       <img class="wordmark" src="../assets/brand/griot-wordmark.svg" alt="Griot">
-      <button type="button" class="icon-button" aria-label="Privacy and settings" aria-disabled="true" title="Settings are coming soon">
+      <button type="button" class="icon-button settings-button" aria-label="Privacy and settings">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="2.5"></circle><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"></path></svg>
       </button>
     </header>
@@ -168,13 +179,17 @@
     </footer>
   </div>
 
-  <!-- Screen 5: "You were here", shown over the tabs right after Pick up -->
+  <!-- Screen 5: "You were here", shown when you pick up a thread, while its tabs come back -->
   <div id="here-screen" class="screen" hidden>
+    <header class="detail-header">
+      <button type="button" id="here-back" class="back-button">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"></path></svg>
+        All threads
+      </button>
+      <span id="here-ready" class="caption"></span>
+    </header>
     <main class="main">
-      <div class="welcome-heading">
-        <span class="eyebrow">Picked up</span>
-        <h1 class="title">You were here</h1>
-      </div>
+      <h1 class="title">You were here</h1>
 
       <article class="welcome-card">
         <p id="here-note" class="detail-note"></p>
@@ -191,8 +206,73 @@
         <div id="here-next"></div>
       </article>
 
-      <button type="button" id="here-ok" class="button button-primary">Got it</button>
+      <button type="button" id="here-ok" class="button button-primary welcome-go">
+        Take me there
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10h10M11 6l4 4-4 4"></path></svg>
+      </button>
     </main>
+  </div>
+
+  <!-- Screen 6: privacy and settings -->
+  <div id="settings-screen" class="screen" hidden>
+    <header class="settings-header">
+      <button type="button" id="settings-back" class="icon-button settings-back" aria-label="Back to threads">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5"></path></svg>
+      </button>
+      <h1 class="settings-title">Privacy and settings</h1>
+    </header>
+
+    <div class="settings-body">
+      <div class="privacy-promise">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D9AE52" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2"></rect><path d="M7 9V6.5a3 3 0 0 1 6 0V9"></path></svg>
+        <div class="privacy-promise-text">
+          <strong>Everything stays on this device.</strong>
+          <span>Griot saves tab titles, links, times and your notes. It never reads your pages and sends nothing anywhere.</span>
+        </div>
+      </div>
+
+      <section class="settings-section">
+        <h2 class="eyebrow settings-heading">When to ask</h2>
+        <label class="switch-row" for="setting-welcome">
+          When I come back to a window after 10 minutes
+          <input type="checkbox" id="setting-welcome">
+        </label>
+        <label class="switch-row" for="setting-closed">
+          When I close a window
+          <input type="checkbox" id="setting-closed">
+        </label>
+        <label class="switch-row" for="setting-pause">
+          Pause Griot for today
+          <input type="checkbox" id="setting-pause">
+        </label>
+      </section>
+
+      <section class="settings-section">
+        <h2 class="eyebrow">Never track these sites</h2>
+        <div id="blocked-sites" class="site-chips"></div>
+        <button type="button" id="add-site-button" class="button button-secondary small-button">Add a site</button>
+        <form id="add-site-form" class="add-site-form" hidden>
+          <label for="add-site-input" class="field-label">Site address</label>
+          <div class="add-site-row">
+            <input id="add-site-input" class="text-input" type="text" placeholder="web.whatsapp.com" autocomplete="off">
+            <button type="submit" class="button button-secondary small-button">Add</button>
+            <button type="button" id="add-site-cancel" class="button link-button small-button">Cancel</button>
+          </div>
+        </form>
+      </section>
+
+      <div id="delete-all-row" class="settings-bottom">
+        <button type="button" id="delete-all" class="button text-danger">Delete all threads and trails</button>
+        <span id="settings-version" class="caption"></span>
+      </div>
+      <div id="delete-all-confirm" class="delete-confirm settings-confirm" hidden>
+        <p class="delete-question">Delete every thread and trail? This can't be undone.</p>
+        <div class="delete-confirm-buttons">
+          <button type="button" id="delete-all-cancel" class="button button-secondary">Cancel</button>
+          <button type="button" id="delete-all-yes" class="button button-danger-solid">Delete all</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="../lib/threads.js"></script>

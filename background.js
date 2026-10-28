@@ -1,6 +1,8 @@
 // Griot's background script: records the trail of pages visited in each window,
 // brings back a thread's tabs when you press Pick up, notices when you step away
-// and come back (welcome back card), and offers to park a window you close.
+// from a window and come back (welcome back card), and keeps a window you close
+// so you can park it. It never shows anything itself: everything waits inside
+// Griot's popup, and a small dot on the icon says something is waiting.
 // A visit is only the page's title, link and time. Griot never reads page content.
 
 importScripts('lib/storage.js', 'lib/threads.js');
@@ -19,10 +21,15 @@ function isWebPage(url) {
 }
 
 // Record the page a tab is showing as a visit in its window's trail.
+// Nothing is recorded while Griot is paused, or for sites you never want tracked.
 function recordVisit(tab) {
   if (!isWebPage(tab.url)) return;
-  const visit = { url: tab.url, title: cleanTitle(tab.title), time: Date.now() };
-  queueSave(() => addVisit(tab.windowId, visit));
+  queueSave(async () => {
+    const settings = await getSettings();
+    if (isPaused(settings) || isBlockedSite(tab.url, settings)) return;
+    const visit = { url: tab.url, title: cleanTitle(tab.title), time: Date.now() };
+    await addVisit(tab.windowId, visit);
+  });
 }
 
 // A page in the tab you are looking at loaded, changed address or changed title.
@@ -59,66 +66,35 @@ async function findWindowWithThread(thread) {
   return bestCount * 2 >= wanted.size ? best : null;
 }
 
-// Bring back a thread's tabs and select the tab you were on when you parked.
-// If they are already open, switch to that window and add only the missing tabs.
-async function pickUpThread(thread) {
-  const activeUrl = pageAddress((thread.tabs.find((tab) => tab.active) || thread.tabs[0]).url);
-  const existing = await findWindowWithThread(thread);
+// Bring back a thread's tabs, quietly, without switching to them yet.
+// If a window already has most of them, the missing ones are added there.
+// Otherwise they open in the window you are in (never a new window).
+// Returns where they are, so "Take me there" can jump to the tab you were on.
+async function bringBackTabs(thread) {
+  const activeUrl = (thread.tabs.find((tab) => tab.active) || thread.tabs[0]).url;
+  const target = await findWindowWithThread(thread) ||
+    await chrome.windows.getLastFocused({ populate: true, windowTypes: ['normal'] }).catch(() => null);
 
-  if (existing) {
-    const openUrls = new Set(existing.tabs.map((tab) => pageAddress(tab.url)));
-    const missing = thread.tabs.filter((tab) => !openUrls.has(pageAddress(tab.url)));
-    for (const tab of missing) {
-      await chrome.tabs.create({ windowId: existing.id, url: tab.url, active: false });
-    }
-    const tabs = await chrome.tabs.query({ windowId: existing.id });
-    const target = tabs.find((tab) => pageAddress(tab.url) === activeUrl);
-    if (target) await chrome.tabs.update(target.id, { active: true });
-    await chrome.windows.update(existing.id, { focused: true });
-    return;
+  if (!target) {
+    const created = await chrome.windows.create({ url: thread.tabs.map((tab) => tab.url), focused: true });
+    return { windowId: created.id, url: activeUrl };
   }
 
-  const newWindow = await chrome.windows.create({ url: thread.tabs.map((tab) => tab.url), focused: true });
-  const activeIndex = Math.max(0, thread.tabs.findIndex((tab) => tab.active));
-  const target = newWindow.tabs[activeIndex];
-  if (target) await chrome.tabs.update(target.id, { active: true });
-}
-
-// Show the "You were here" reminder after Pick up. First choice is Griot's own popup,
-// opened over the tabs you just got back; it needs no system setting. If Chrome won't
-// open the popup, fall back to a system notification.
-async function showYouWereHere(thread) {
-  // Give Chrome a moment to bring the window to the front, or the popup can't open.
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  if (await openPopupOn({ screen: 'here', threadId: thread.id })) return;
-
-  // A drafted note is still Griot's guess, so it is labelled as one.
-  const note = thread.note && thread.noteIsGuess ? `Griot's guess: ${thread.note}` : thread.note;
-  const lines = [note || thread.title];
-  if (thread.next) lines.push(`Next: ${thread.next}`);
-  await setPopupRequest(null);
-  chrome.notifications.create(`griot-${thread.id}`, {
-    type: 'basic',
-    iconUrl: chrome.runtime.getURL('assets/icons/icon128.png'),
-    title: 'You were here',
-    message: lines.join('\n'),
-    priority: 0
-  });
-}
-
-// Pick up a parked thread: bring its tabs back, then show the reminder.
-async function pickUpSavedThread(threadId) {
-  const thread = (await getThreads()).find((saved) => saved.id === threadId);
-  if (!thread) return;
-  await pickUpThread(thread);
-  await showYouWereHere(thread);
+  const openUrls = new Set(target.tabs.map((tab) => pageAddress(tab.url)));
+  for (const tab of thread.tabs) {
+    if (openUrls.has(pageAddress(tab.url))) continue;
+    await chrome.tabs.create({ windowId: target.id, url: tab.url, active: false });
+    openUrls.add(pageAddress(tab.url));
+  }
+  return { windowId: target.id, url: activeUrl };
 }
 
 // Go to one page: switch to it if it is open in any window, otherwise open it
 // in the given window (or a new window if that one is gone).
 async function goToPage(url, windowId) {
   const windows = await chrome.windows.getAll({ populate: true, windowTypes: ['normal'] });
-  for (const win of windows) {
+  const sameWindowFirst = [...windows].sort((a, b) => (b.id === windowId) - (a.id === windowId));
+  for (const win of sameWindowFirst) {
     const tab = win.tabs.find((open) => pageAddress(open.url) === pageAddress(url));
     if (tab) {
       await chrome.tabs.update(tab.id, { active: true });
@@ -134,51 +110,38 @@ async function goToPage(url, windowId) {
   }
 }
 
-// Messages from the popup. The background does this work because the popup
-// closes as soon as Chrome switches windows.
-chrome.runtime.onMessage.addListener((message) => {
-  let work = null;
-  if (message.type === 'pick-up') work = pickUpSavedThread(message.threadId);
-  if (message.type === 'reopen-tabs') work = pickUpThread({ tabs: message.tabs });
-  if (message.type === 'go-to') work = goToPage(message.url, message.windowId);
-  if (work) work.catch((error) => console.error('Griot could not bring the tabs back', error));
-});
-
-// ---------- Opening the popup on a chosen screen ----------
-
-// Ask the popup to open on a screen, then open it. The screen is 'park', 'park-closed',
-// 'welcome', or { screen: 'here', threadId } for the "You were here" card.
-// Chrome can only open the popup while one of its windows is in front.
-// Returns true if the popup opened.
-async function openPopupOn(screen) {
-  await setPopupRequest(screen);
-  try {
-    await chrome.action.openPopup();
-    return true;
-  } catch (error) {
-    console.warn('Griot could not open its popup; it will open on this screen next time', error);
-    return false;
-  }
+// Bring back a list of tabs and go straight to the one you were on ("Reopen all").
+async function reopenAndGo(tabs) {
+  const place = await bringBackTabs({ tabs });
+  await goToPage(place.url, place.windowId);
 }
 
-// The Alt+Shift+P shortcut opens the park card.
-chrome.commands.onCommand.addListener((command) => {
-  if (command === 'park-thread') openPopupOn('park');
+// Messages from the popup. The background does this work because the popup
+// closes as soon as Chrome switches tabs or windows.
+chrome.runtime.onMessage.addListener((message, sender, reply) => {
+  const fail = (error) => console.error('Griot could not bring the tabs back', error);
+  if (message.type === 'pick-up') {
+    getThreads()
+      .then((threads) => threads.find((thread) => thread.id === message.threadId))
+      .then((thread) => (thread ? bringBackTabs(thread) : null))
+      .then(reply)
+      .catch((error) => { fail(error); reply(null); });
+    return true; // the reply comes later
+  }
+  if (message.type === 'reopen-tabs') reopenAndGo(message.tabs).catch(fail);
+  if (message.type === 'go-to') goToPage(message.url, message.windowId).catch(fail);
+  return false;
 });
 
-// Clicking a notification (shown only when the popup could not open by itself):
-// welcome back opens that screen, a closed window opens the park card for it,
-// and the "You were here" reminder just closes.
-chrome.notifications.onClicked.addListener((id) => {
-  chrome.notifications.clear(id);
-  if (id === WELCOME_NOTIFICATION) openPopupOn('welcome');
-  if (id === CLOSED_WINDOW_NOTIFICATION) openPopupOn('park-closed');
+// The Alt+Shift+P shortcut opens Griot on the park card. If Chrome won't open the
+// popup from a shortcut, the park card is waiting the next time you click the icon.
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command !== 'park-thread') return;
+  await setPopupRequest('park');
+  chrome.action.openPopup().catch(() => {});
 });
 
 // ---------- Welcome back ----------
-
-const WELCOME_NOTIFICATION = 'griot-welcome-back';
-const CLOSED_WINDOW_NOTIFICATION = 'griot-closed-window';
 
 // How long without using the computer before Chrome calls you idle, in seconds.
 const IDLE_AFTER_SECONDS = 60;
@@ -188,13 +151,6 @@ const WELCOME_AFTER_MINUTES = 10;
 const GUESS_WINDOW_MS = 3 * 60 * 60 * 1000;
 
 chrome.idle.setDetectionInterval(IDLE_AFTER_SECONDS);
-
-// One sentence for Griot's guess: "comparing Product X and Product Y".
-function guessSentence(guess) {
-  if (guess.compared) return `comparing ${guess.compared[0]} and ${guess.compared[1]}`;
-  if (guess.topic) return `looking into ${guess.topic}`;
-  return '';
-}
 
 // Griot keeps, for each Chrome window, the time you left it: { windowId: time }.
 // You leave a window when you switch to another window or another app,
@@ -212,7 +168,7 @@ async function rememberLeft(windowId, time) {
 }
 
 // You are back in a window. If you were away from it long enough, build the
-// welcome back card from its trail and show it.
+// welcome back card from its trail. It waits in Griot's popup (the icon gets a dot).
 async function cameBackTo(windowId) {
   const leftWindows = await getLeftWindows();
   const leftAt = leftWindows[windowId];
@@ -227,27 +183,11 @@ async function cameBackTo(windowId) {
     .filter((visit) => visit.time <= leftAt && visit.time >= leftAt - GUESS_WINDOW_MS);
   if (visits.length === 0) return;
 
+  const settings = await getSettings();
+  if (isPaused(settings) || !settings.welcomeBack) return;
+
   const guess = guessFromTrail(visits);
   await setWelcome({ ...guess, windowId, awayMinutes, returnedAt: Date.now(), shown: false });
-  await showWelcomeBack(guess, awayMinutes);
-}
-
-// Show the welcome back card: Griot's popup if Chrome lets it open, otherwise a notification.
-async function showWelcomeBack(guess, awayMinutes) {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  if (await openPopupOn('welcome')) return;
-  await setPopupRequest(null);
-
-  const sentence = guessSentence(guess);
-  const lines = [`You were away for ${awayText(awayMinutes)}.`];
-  lines.push(sentence ? `Griot's guess: ${sentence}.` : `You stopped on ${shortTitle(guess.stoppedAt.title)}.`);
-  chrome.notifications.create(WELCOME_NOTIFICATION, {
-    type: 'basic',
-    iconUrl: chrome.runtime.getURL('assets/icons/icon128.png'),
-    title: 'Welcome back',
-    message: lines.join('\n'),
-    priority: 1
-  });
 }
 
 // You moved between windows, or between Chrome and another app.
@@ -289,7 +229,7 @@ chrome.windows.onRemoved.addListener((windowId) => queueSave(async () => {
 
 // ---------- Offer to park a window you close ----------
 
-// A window needs this many web pages for Griot to offer to park it when it closes.
+// A window needs this many web pages for Griot to offer to park it after it closes.
 const LEAVE_PROMPT_MIN_TABS = 3;
 // Never ask about the same window more than once in this time.
 const LEAVE_PROMPT_GAP_MS = 60 * 60 * 1000;
@@ -298,8 +238,9 @@ const LEAVE_PROMPT_GAP_MS = 60 * 60 * 1000;
 // The copy lives in session storage, which Chrome empties when it quits.
 async function rememberWindowTabs(windowId) {
   if (windowId === undefined || windowId === chrome.windows.WINDOW_ID_NONE) return;
+  const settings = await getSettings();
   const tabs = await chrome.tabs.query({ windowId }).catch(() => []);
-  const webTabs = tabs.filter((tab) => isWebPage(tab.url)).map((tab) => ({
+  const webTabs = tabs.filter((tab) => isWebPage(tab.url) && !isBlockedSite(tab.url, settings)).map((tab) => ({
     url: tab.url, title: cleanTitle(tab.title), favIconUrl: tab.favIconUrl || '', active: tab.active, windowId
   }));
   const { windowTabs = {} } = await chrome.storage.session.get('windowTabs');
@@ -316,13 +257,15 @@ async function alreadyParked(tabs) {
   return tabs.every((tab) => parkedUrls.has(pageAddress(tab.url)));
 }
 
-// A window closed: if it had enough pages, offer to park it.
+// A window closed: if it had enough pages, keep it so Griot's home can offer to park it.
 async function offerToParkClosedWindow(windowId) {
   const { windowTabs = {}, promptedAt = {} } = await chrome.storage.session.get(['windowTabs', 'promptedAt']);
   const tabs = windowTabs[windowId] || [];
   delete windowTabs[windowId];
   await chrome.storage.session.set({ windowTabs });
 
+  const settings = await getSettings();
+  if (isPaused(settings) || !settings.closedWindowPrompt) return;
   if (tabs.length < LEAVE_PROMPT_MIN_TABS) return;
   if (Date.now() - (promptedAt[windowId] || 0) < LEAVE_PROMPT_GAP_MS) return;
   if (await alreadyParked(tabs)) return;
@@ -330,16 +273,6 @@ async function offerToParkClosedWindow(windowId) {
   promptedAt[windowId] = Date.now();
   await chrome.storage.session.set({ promptedAt });
   await setClosedWindow({ windowId, tabs, closedAt: Date.now() });
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  if (await openPopupOn('park-closed')) return;
-  await setPopupRequest(null);
-  chrome.notifications.create(CLOSED_WINDOW_NOTIFICATION, {
-    type: 'basic',
-    iconUrl: chrome.runtime.getURL('assets/icons/icon128.png'),
-    title: 'Park this thread?',
-    message: `You closed a window with ${tabs.length} tabs. Click to park it so you can pick it up later.`,
-    priority: 0
-  });
 }
 
 // Keep the copies of each window's tabs up to date.
@@ -354,3 +287,7 @@ chrome.tabs.onRemoved.addListener((tabId, { windowId, isWindowClosing }) => {
   if (!isWindowClosing) queueSave(() => rememberWindowTabs(windowId));
 });
 chrome.windows.onRemoved.addListener((windowId) => queueSave(() => offerToParkClosedWindow(windowId)));
+
+// Show the dot on Griot's icon again after Chrome starts, if something is waiting.
+chrome.runtime.onStartup.addListener(() => updateBadge());
+chrome.runtime.onInstalled.addListener(() => updateBadge());
