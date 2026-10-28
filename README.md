@@ -2,31 +2,33 @@
 
 **Your context lives on.**
 
-Griot is a Chrome extension for the moment you come back to a window full of tabs and can't remember what you were doing. It quietly keeps the trail of pages you visit in each window. Come back after a break and it shows the page you stopped on, a guess at what you were doing, and takes you back in one click. If you want it to remember why, park the thread with one line in your own words before you leave.
+Griot notices when you come back to a window and shows you where you left off.
 
-Everything stays on your computer. Griot reads tab titles and links, never what's on the page.
+You know the moment. You step away for a call or lunch, come back to a wall of tabs, and have no idea what you were in the middle of. Other tools can save your tabs, but only if you remembered to save them before you left. Griot works when you didn't. It keeps a quiet trail of the pages you visit in each window, and when you return after a break it tells you where you stopped and takes you back in one click.
+
+No saving, no account, no AI. Griot reads tab titles and links, never what's on the page, and nothing leaves your computer.
 
 <p align="center">
-  <img src="docs/griot-demo.gif" width="380" alt="Griot opening a parked thread, showing its trail of pages, then picking it up and showing You were here">
+  <img src="docs/griot-demo.gif" width="380" alt="Griot opening a thread, showing its trail of pages, then picking it up and showing You were here">
 </p>
 
 ## What it does
 
-**Park a thread.** Press "Park the thread I'm on" (or Option+Shift+P on a Mac, Alt+Shift+P on Windows). Griot drafts a note from your tab titles, labelled as its guess, and you can keep it or write your own. Tick the tabs that belong to the task and leave out the rest.
+**It notices you came back.** Leave a window for 10 minutes or more, for a meeting, a call, another app, and come back. Griot plays a soft chime, shows how long you were away on its icon (like "25m"), and puts a small orange "You were here" label on the tab you left if you came back somewhere else. You didn't have to do anything before you left.
 
-**Pick it up later.** Your parked threads wait on Griot's home screen, newest first. Pick up shows "You were here" with your note, the page you stopped on and your next step, while your tabs come back in the same window. Take me there jumps to the exact tab.
+**It shows where you stopped.** Click the icon and the welcome back card shows the page you were on, the trail of pages that got you there, and Griot's guess at what you were doing ("comparing Product X and Product Y") and what comes next ("sign up for Product X?"). One button takes you straight there. If the guess is wrong, "That's not it" lets you say it in your own words.
 
-**Welcome back, even if you parked nothing.** Griot quietly keeps a trail of the pages you visit in each window. If you leave a window for 10 minutes or more and come back, it plays a soft chime, shows how long you were away on its icon (like "25m") and puts a small "You were here" label on the tab you left. Open Griot and the welcome back card shows where you stopped, with a guess at what you were doing and what comes next.
+**Want it to remember why? Park the thread.** For planned breaks, press "Park the thread I'm on" (or Option+Shift+P on a Mac, Alt+Shift+P on Windows) and add one line about where you were headed. Griot drafts that line from your tab titles, labelled as its guess, so keeping it is one tap. Tick the tabs that belong to the task and leave out the rest. Later, Pick up shows "You were here" with your note and next step while your tabs come back in the same window.
 
 **Close a window by accident?** If it had three or more tabs, Griot offers to park it so nothing is lost.
 
 ## Screenshots
 
-| Home | Park a thread | Thread and trail |
+| Welcome back | Thread and trail | Home |
 | :---: | :---: | :---: |
-| <img src="docs/screenshots/1-home.png" width="250" alt="Home screen with a parked thread"> | <img src="docs/screenshots/2-park-card.png" width="250" alt="Park card with a note and tab checkboxes"> | <img src="docs/screenshots/3-thread-and-trail.png" width="250" alt="A thread with its trail of pages"> |
-| **Welcome back** | **You were here** | **Privacy and settings** |
-| <img src="docs/screenshots/4-welcome-back.png" width="250" alt="Welcome back card after 25 minutes away"> | <img src="docs/screenshots/5-you-were-here.png" width="250" alt="You were here card after picking up a thread"> | <img src="docs/screenshots/6-privacy-and-settings.png" width="250" alt="Privacy and settings screen"> |
+| <img src="docs/screenshots/4-welcome-back.png" width="250" alt="Welcome back card after 25 minutes away"> | <img src="docs/screenshots/3-thread-and-trail.png" width="250" alt="A thread with its trail of pages"> | <img src="docs/screenshots/1-home.png" width="250" alt="Home screen with a parked thread"> |
+| **Park a thread** | **You were here** | **Privacy and settings** |
+| <img src="docs/screenshots/2-park-card.png" width="250" alt="Park card with a note and tab checkboxes"> | <img src="docs/screenshots/5-you-were-here.png" width="250" alt="You were here card after picking up a thread"> | <img src="docs/screenshots/6-privacy-and-settings.png" width="250" alt="Privacy and settings screen"> |
 
 The sites in these screenshots are made up for the demo.
 

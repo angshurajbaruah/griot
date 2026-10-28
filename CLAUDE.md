@@ -1,6 +1,8 @@
 # Griot
 
-Griot is a Chrome extension that remembers the context behind your tabs. When you step away from a task, it asks one question ("Where were you headed?") and saves your answer with the task's tabs. When you come back, a resume card gives you your note, your next step, the trail of pages you visited, and one click to reopen everything.
+Griot is a Chrome extension that notices when you come back to a window and shows you where you left off. It keeps a quiet trail of the pages you visit in each window. When you return after a break of 10 minutes or more, it chimes, shows how long you were away on its icon, labels the tab you left, and its welcome back card gives you the page you stopped on, a guess at what you were doing, and one click to get back. Nothing has to be saved first. For planned breaks you can also park a thread with one line in your own words ("Where were you headed?"), and pick it up later with your note, next step and tabs.
+
+Positioning (28 Oct 2026): other tools, including small extensions like Restora Tab Handoff, already save tabs with notes, but only when you remember to save. Griot's difference is the automatic comeback: no saving, no account, no AI, nothing leaves the device. Lead with that; parking is the optional extra.
 
 Tagline: **Your context lives on.**
 
