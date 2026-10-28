@@ -84,13 +84,19 @@ async function pickUpThread(thread) {
   if (target) await chrome.tabs.update(target.id, { active: true });
 }
 
-// Show a small "You were here" card with your note and next step.
-// It is made on this device by Chrome; nothing is sent anywhere.
-function showYouWereHere(thread) {
+// Show the "You were here" reminder after Pick up. First choice is Griot's own popup,
+// opened over the tabs you just got back; it needs no system setting. If Chrome won't
+// open the popup, fall back to a system notification.
+async function showYouWereHere(thread) {
+  // Give Chrome a moment to bring the window to the front, or the popup can't open.
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  if (await openPopupOn({ screen: 'here', threadId: thread.id })) return;
+
   // A drafted note is still Griot's guess, so it is labelled as one.
   const note = thread.note && thread.noteIsGuess ? `Griot's guess: ${thread.note}` : thread.note;
   const lines = [note || thread.title];
   if (thread.next) lines.push(`Next: ${thread.next}`);
+  await setPopupRequest(null);
   chrome.notifications.create(`griot-${thread.id}`, {
     type: 'basic',
     iconUrl: chrome.runtime.getURL('assets/icons/icon128.png'),
@@ -105,7 +111,7 @@ async function pickUpSavedThread(threadId) {
   const thread = (await getThreads()).find((saved) => saved.id === threadId);
   if (!thread) return;
   await pickUpThread(thread);
-  showYouWereHere(thread);
+  await showYouWereHere(thread);
 }
 
 // Go to one page: switch to it if it is open in any window, otherwise open it
@@ -140,14 +146,18 @@ chrome.runtime.onMessage.addListener((message) => {
 
 // ---------- Opening the popup on a chosen screen ----------
 
-// Ask the popup to open on a screen ('park', 'park-closed' or 'welcome'), then open it.
+// Ask the popup to open on a screen, then open it. The screen is 'park', 'park-closed',
+// 'welcome', or { screen: 'here', threadId } for the "You were here" card.
 // Chrome can only open the popup while one of its windows is in front.
+// Returns true if the popup opened.
 async function openPopupOn(screen) {
   await setPopupRequest(screen);
   try {
     await chrome.action.openPopup();
+    return true;
   } catch (error) {
     console.warn('Griot could not open its popup; it will open on this screen next time', error);
+    return false;
   }
 }
 
@@ -156,8 +166,9 @@ chrome.commands.onCommand.addListener((command) => {
   if (command === 'park-thread') openPopupOn('park');
 });
 
-// Clicking a notification: welcome back opens that screen, a closed window opens
-// the park card for it, and the "You were here" reminder just closes.
+// Clicking a notification (shown only when the popup could not open by itself):
+// welcome back opens that screen, a closed window opens the park card for it,
+// and the "You were here" reminder just closes.
 chrome.notifications.onClicked.addListener((id) => {
   chrome.notifications.clear(id);
   if (id === WELCOME_NOTIFICATION) openPopupOn('welcome');
@@ -171,7 +182,7 @@ const CLOSED_WINDOW_NOTIFICATION = 'griot-closed-window';
 
 // How long without using the computer before Chrome calls you idle, in seconds.
 const IDLE_AFTER_SECONDS = 60;
-// A break this long or longer gets a welcome back card.
+// Being away from a window this long or longer gets a welcome back card.
 const WELCOME_AFTER_MINUTES = 10;
 // Only pages from this long before the break count towards the guess.
 const GUESS_WINDOW_MS = 3 * 60 * 60 * 1000;
@@ -185,32 +196,47 @@ function guessSentence(guess) {
   return '';
 }
 
-// You stepped away: remember when, and which window you were in.
-async function rememberAway(state) {
-  const { awayFrom } = await chrome.storage.local.get({ awayFrom: null });
-  if (awayFrom) return; // already away (for example idle, then the screen locked)
-  // Chrome says "idle" a minute after your last move, so the break started a minute earlier.
-  const time = Date.now() - (state === 'idle' ? IDLE_AFTER_SECONDS * 1000 : 0);
-  const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => null);
-  await chrome.storage.local.set({ awayFrom: { time, windowId: win ? win.id : null } });
+// Griot keeps, for each Chrome window, the time you left it: { windowId: time }.
+// You leave a window when you switch to another window or another app,
+// or when the computer goes idle while that window is in front.
+async function getLeftWindows() {
+  const { leftWindows } = await chrome.storage.local.get({ leftWindows: {} });
+  return leftWindows;
 }
 
-// You came back: after a long enough break, build the welcome back card for the
-// window you were in, save it for the popup and show a notification.
-async function welcomeBack() {
-  const { awayFrom } = await chrome.storage.local.get({ awayFrom: null });
-  if (!awayFrom) return;
-  await chrome.storage.local.set({ awayFrom: null });
+// Remember that you left a window at a time (keeping the earlier time if already gone).
+async function rememberLeft(windowId, time) {
+  const leftWindows = await getLeftWindows();
+  leftWindows[windowId] = Math.min(leftWindows[windowId] || Infinity, time);
+  await chrome.storage.local.set({ leftWindows });
+}
 
-  const awayMinutes = Math.round((Date.now() - awayFrom.time) / 60000);
-  if (awayMinutes < WELCOME_AFTER_MINUTES || awayFrom.windowId === null) return;
+// You are back in a window. If you were away from it long enough, build the
+// welcome back card from its trail and show it.
+async function cameBackTo(windowId) {
+  const leftWindows = await getLeftWindows();
+  const leftAt = leftWindows[windowId];
+  if (leftAt === undefined) return;
+  delete leftWindows[windowId];
+  await chrome.storage.local.set({ leftWindows });
 
-  const visits = (await getTrail(awayFrom.windowId))
-    .filter((visit) => visit.time <= awayFrom.time && visit.time >= awayFrom.time - GUESS_WINDOW_MS);
+  const awayMinutes = Math.round((Date.now() - leftAt) / 60000);
+  if (awayMinutes < WELCOME_AFTER_MINUTES) return;
+
+  const visits = (await getTrail(windowId))
+    .filter((visit) => visit.time <= leftAt && visit.time >= leftAt - GUESS_WINDOW_MS);
   if (visits.length === 0) return;
 
   const guess = guessFromTrail(visits);
-  await setWelcome({ ...guess, windowId: awayFrom.windowId, awayMinutes, returnedAt: Date.now(), shown: false });
+  await setWelcome({ ...guess, windowId, awayMinutes, returnedAt: Date.now(), shown: false });
+  await showWelcomeBack(guess, awayMinutes);
+}
+
+// Show the welcome back card: Griot's popup if Chrome lets it open, otherwise a notification.
+async function showWelcomeBack(guess, awayMinutes) {
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  if (await openPopupOn('welcome')) return;
+  await setPopupRequest(null);
 
   const sentence = guessSentence(guess);
   const lines = [`You were away for ${awayText(awayMinutes)}.`];
@@ -224,11 +250,42 @@ async function welcomeBack() {
   });
 }
 
-// Chrome tells us when you go idle, lock the screen, or come back.
+// You moved between windows, or between Chrome and another app.
+// The window you left gets a "left at" time; the window you came to is checked.
+async function focusChanged(newWindowId) {
+  const { focusedWindow } = await chrome.storage.local.get({ focusedWindow: null });
+  const now = Date.now();
+  if (focusedWindow !== null && focusedWindow !== newWindowId) await rememberLeft(focusedWindow, now);
+
+  const inChrome = newWindowId !== chrome.windows.WINDOW_ID_NONE;
+  await chrome.storage.local.set({ focusedWindow: inChrome ? newWindowId : null });
+  if (inChrome) await cameBackTo(newWindowId);
+}
+
+// The computer went idle or locked, or you came back to it.
+async function idleChanged(state) {
+  const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => null);
+  if (!win || !win.focused) return; // Chrome was not in front, so focus changes cover it
+  if (state === 'active') return cameBackTo(win.id);
+  // Chrome says "idle" a minute after your last move, so the break started a minute earlier.
+  const time = Date.now() - (state === 'idle' ? IDLE_AFTER_SECONDS * 1000 : 0);
+  return rememberLeft(win.id, time);
+}
+
+chrome.windows.onFocusChanged.addListener((windowId) => {
+  queueSave(() => focusChanged(windowId));
+}, { windowTypes: ['normal'] });
+
 chrome.idle.onStateChanged.addListener((state) => {
-  const work = state === 'active' ? welcomeBack() : rememberAway(state);
-  work.catch((error) => console.error('Griot could not handle the break', error));
+  queueSave(() => idleChanged(state));
 });
+
+// A closed window can't be come back to, so forget when you left it.
+chrome.windows.onRemoved.addListener((windowId) => queueSave(async () => {
+  const leftWindows = await getLeftWindows();
+  delete leftWindows[windowId];
+  await chrome.storage.local.set({ leftWindows });
+}));
 
 // ---------- Offer to park a window you close ----------
 
@@ -273,6 +330,9 @@ async function offerToParkClosedWindow(windowId) {
   promptedAt[windowId] = Date.now();
   await chrome.storage.session.set({ promptedAt });
   await setClosedWindow({ windowId, tabs, closedAt: Date.now() });
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  if (await openPopupOn('park-closed')) return;
+  await setPopupRequest(null);
   chrome.notifications.create(CLOSED_WINDOW_NOTIFICATION, {
     type: 'basic',
     iconUrl: chrome.runtime.getURL('assets/icons/icon128.png'),
