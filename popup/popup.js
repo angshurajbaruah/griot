@@ -73,12 +73,13 @@ function parkedTimeText(time, short) {
   return `${day}, ${clockText(time)}`;
 }
 
-// Show one screen ("home", "park", "detail" or "welcome") and hide the others.
+// Show one screen ("home", "park", "detail", "welcome" or "here") and hide the others.
 function showScreen(name) {
   document.getElementById('home-screen').hidden = name !== 'home';
   document.getElementById('park-screen').hidden = name !== 'park';
   document.getElementById('detail-screen').hidden = name !== 'detail';
   document.getElementById('welcome-screen').hidden = name !== 'welcome';
+  document.getElementById('here-screen').hidden = name !== 'here';
 }
 
 // Go back home and show a short green message, like "Thread parked."
@@ -476,14 +477,43 @@ async function welcomeNotIt() {
   await openParkCard({ tabs: windowTabs.length > 0 ? windowTabs : undefined, emptyNote: true });
 }
 
+// ---------- You were here ----------
+
+// Show the "You were here" card for a thread you just picked up:
+// your note (or Griot's guess), the last page you were on, and your next step.
+async function showHere(threadId) {
+  const thread = (await getThreads()).find((saved) => saved.id === threadId);
+  if (!thread) return goHome();
+
+  const note = document.getElementById('here-note');
+  note.textContent = thread.noteIsGuess ? `Griot's guess: ${thread.note}` : thread.note || thread.title;
+  note.classList.toggle('is-guess', Boolean(thread.noteIsGuess));
+
+  const trail = thread.trail || [];
+  const stopped = trail[trail.length - 1] || thread.tabs.find((tab) => tab.active);
+  document.getElementById('here-stopped').hidden = !stopped;
+  if (stopped) {
+    document.getElementById('here-stopped-title').textContent = shortTitle(stopped.title) || stopped.url;
+    document.getElementById('here-stopped-meta').textContent =
+      stopped.time ? `${siteName(stopped.url)} · ${clockText(stopped.time)}` : siteName(stopped.url);
+  }
+
+  document.getElementById('here-next').replaceChildren(...(thread.next ? [makeNextLine(thread.next)] : []));
+  showScreen('here');
+  document.getElementById('here-ok').focus();
+}
+
 // ---------- Opening on the right screen ----------
 
 // Choose the first screen: the one a shortcut or notification asked for,
 // a welcome back card you have not seen yet, or home.
 async function start() {
-  const request = await getPopupRequest();
-  if (request) await setPopupRequest(null);
+  const saved = await getPopupRequest();
+  if (saved) await setPopupRequest(null);
+  // A request is a screen name, or { screen, threadId } for "You were here".
+  const request = typeof saved === 'string' ? saved : saved && saved.screen;
 
+  if (request === 'here') return showHere(saved.threadId);
   if (request === 'park') return openParkCard();
 
   if (request === 'park-closed') {
@@ -520,5 +550,6 @@ document.getElementById('delete-yes').addEventListener('click', deleteOpenThread
 document.getElementById('welcome-go').addEventListener('click', welcomeGoTo);
 document.getElementById('welcome-reopen').addEventListener('click', welcomeReopenAll);
 document.getElementById('welcome-not-it').addEventListener('click', welcomeNotIt);
+document.getElementById('here-ok').addEventListener('click', () => window.close());
 
 start();

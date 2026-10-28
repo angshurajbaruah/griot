@@ -168,6 +168,33 @@
     </footer>
   </div>
 
+  <!-- Screen 5: "You were here", shown over the tabs right after Pick up -->
+  <div id="here-screen" class="screen" hidden>
+    <main class="main">
+      <div class="welcome-heading">
+        <span class="eyebrow">Picked up</span>
+        <h1 class="title">You were here</h1>
+      </div>
+
+      <article class="welcome-card">
+        <p id="here-note" class="detail-note"></p>
+
+        <div id="here-stopped" class="stopped-here">
+          <span class="stopped-dot" aria-hidden="true"></span>
+          <div class="stopped-text">
+            <span class="stopped-label">You stopped here</span>
+            <span id="here-stopped-title" class="stopped-title"></span>
+            <span id="here-stopped-meta" class="caption"></span>
+          </div>
+        </div>
+
+        <div id="here-next"></div>
+      </article>
+
+      <button type="button" id="here-ok" class="button button-primary">Got it</button>
+    </main>
+  </div>
+
   <script src="../lib/threads.js"></script>
   <script src="../lib/storage.js"></script>
   <script src="popup.js"></script>
