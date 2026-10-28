@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Griot park card</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&amp;family=Josefin+Sans:wght@400;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#3E2A1C}a:hover{color:#A64F2E}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #3E2A1C;outline-offset:2px}
+.band{background-image:url(../../assets/brand/border-triangles.svg);background-repeat:repeat-x;background-size:28px 14px}
+.cloth{background-image:url(../../assets/brand/border-hatch.svg);background-repeat:repeat-x;background-size:32px 16px}
+</style>
+<div style="width: 380px; height: 600px; box-sizing: border-box; background: #F4EBDD; color: #3E2A1C; font-family: 'Source Serif 4', Georgia, serif; display: flex; flex-direction: column;">
+  <div class="band" style="height: 14px; flex-shrink: 0;" aria-hidden="true"></div>
+
+  <div style="padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 14px; flex-grow: 1;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <img src="../../assets/brand/griot-mark.svg" alt="" style="width: 22px; height: 22px;">
+      <span style="font-family: 'BackOut', 'Josefin Sans', ui-sans-serif, sans-serif; font-size: 13px; line-height: 16px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; color: #6B5442;">Away for 10 minutes</span>
+    </div>
+
+    <h1 style="margin: 0; font-size: 26px; line-height: 32px; font-family: 'BackOut', 'Josefin Sans', ui-sans-serif, sans-serif; font-weight: 400; letter-spacing: 0.02em;">Where were you headed?</h1>
+
+    <div style="display: flex; align-items: center; gap: 8px; font-family: 'Instrument Sans', ui-sans-serif, sans-serif;">
+      <div style="display: flex; gap: 4px;" aria-hidden="true">
+        <span style="width: 20px; height: 20px; border-radius: 4px; background: #E8D7B7; color: #6B5442; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center;">A</span>
+        <span style="width: 20px; height: 20px; border-radius: 4px; background: #E8D7B7; color: #6B5442; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center;">C</span>
+        <span style="width: 20px; height: 20px; border-radius: 4px; background: #E8D7B7; color: #6B5442; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center;">L</span>
+        <span style="width: 20px; height: 20px; border-radius: 4px; background: #E8D7B7; color: #6B5442; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center;">G</span>
+      </div>
+      <span style="font-size: 13px; line-height: 18px; color: #6B5442;">9 tabs in this thread</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <label for="note" style="font-family: 'Instrument Sans', ui-sans-serif, sans-serif; font-size: 13px; line-height: 18px; font-weight: 500;">Your note</label>
+      <textarea id="note" rows="3" style="box-sizing: border-box; width: 100%; resize: none; border: 1px solid #8C765A; border-radius: 8px; background: #FBF6EE; color: #3E2A1C; padding: 10px 12px; font-family: 'Source Serif 4', Georgia, serif; font-style: italic; font-size: 16px; line-height: 23px;">Comparing Apollo, Clay and Lemlist for outbound. Clay looks strongest on enrichment.</textarea>
+      <span style="font-family: 'Instrument Sans', ui-sans-serif, sans-serif; font-size: 12px; line-height: 16px; color: #6B5442;">Griot's guess from your tab titles. Make it yours.</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px; font-family: 'Instrument Sans', ui-sans-serif, sans-serif;">
+      <label for="next" style="display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; font-weight: 500;">
+        <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 999px; background: #C89B3C;"></span>
+        Next step <span style="font-weight: 400; color: #6B5442;">(optional)</span>
+      </label>
+      <input id="next" type="text" value="Check Clay's credit limits on the Pro plan" style="box-sizing: border-box; width: 100%; height: 40px; border: 1px solid #8C765A; border-radius: 8px; background: #FBF6EE; color: #3E2A1C; padding: 0 12px; font-family: inherit; font-size: 14px;">
+    </div>
+
+    <label style="display: flex; align-items: center; gap: 10px; font-family: 'Instrument Sans', ui-sans-serif, sans-serif; font-size: 14px; line-height: 20px; cursor: pointer;">
+      <input type="checkbox" checked="" style="width: 18px; height: 18px; margin: 0; accent-color: #3E2A1C;">
+      Close these tabs after parking
+    </label>
+
+    <div style="margin-top: auto; display: flex; gap: 8px; font-family: 'Instrument Sans', ui-sans-serif, sans-serif;">
+      <button type="button" style="flex: 1; height: 44px; border: 1px solid #8C765A; border-radius: 8px; background: #FBF6EE; color: #3E2A1C; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;">Not now</button>
+      <a href="3-home.html" style="flex: 2; display: flex; align-items: center; justify-content: center; height: 44px; border-radius: 8px; color: #FBF6EE; font-size: 14px; font-weight: 600; text-decoration: none; background-color: var(--earth-brown, #3e2a1c)">Park thread</a>
+    </div>
+    <p style="margin: 0; text-align: center; font-family: 'Instrument Sans', ui-sans-serif, sans-serif; font-size: 12px; line-height: 16px; color: #6B5442;">Esc to skip · Alt+Shift+P to park any time</p>
+  </div>
+</div>
+</body>
+</html>
