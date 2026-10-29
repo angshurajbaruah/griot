@@ -124,7 +124,13 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if (message.type === 'pick-up') {
     getThreads()
       .then((threads) => threads.find((thread) => thread.id === message.threadId))
-      .then((thread) => (thread ? bringBackTabs(thread) : null))
+      .then(async (thread) => {
+        if (!thread) return null;
+        const place = await bringBackTabs(thread);
+        // You're back on this thread, so it leaves the home screen. Park again when you leave.
+        await updateThread(thread.id, { status: 'picked-up', pickedUpAt: Date.now() });
+        return place;
+      })
       .then(reply)
       .catch((error) => { fail(error); reply(null); });
     return true; // the reply comes later

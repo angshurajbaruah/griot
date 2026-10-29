@@ -273,7 +273,8 @@ function makeSmallCard(thread) {
   heading.className = 'thread-title';
   heading.append(makeOpenButton(thread, thread.title));
   card.append(heading);
-  if (thread.note) card.append(makeNote(thread));
+  // Skip the note when it only repeats the title (a guess built from one tab's title).
+  if (thread.note && thread.note.replace(/[.\s]+$/, '') !== thread.title) card.append(makeNote(thread));
   if (thread.next) card.append(makeNextLine(thread.next));
   card.append(makeIconRow(thread.tabs), makeText('span', 'thread-meta', metaText(thread, true)));
 
@@ -294,7 +295,7 @@ async function showHome() {
     .sort((a, b) => b.parkedAt - a.parkedAt);
 
   if (threads.length === 0) {
-    container.append(makeText('p', 'empty-note', 'Nothing parked yet. When you park a thread, it waits here.'));
+    container.append(makeText('p', 'empty-note', 'Nothing parked right now. When you park a thread, it waits here.'));
     return;
   }
 
@@ -441,6 +442,15 @@ function withoutRepeats(trail) {
     index === 0 || pageAddress(visit.url) !== pageAddress(trail[index - 1].url));
 }
 
+// If a parked thread already has exactly these tabs, remove it, so parking the same
+// tabs again updates the thread instead of making a second copy on home.
+async function replaceSameThread(tabs) {
+  const key = (list) => [...new Set(list.map((tab) => pageAddress(tab.url)))].sort().join(' ');
+  const newKey = key(tabs);
+  const same = (await getThreads()).filter((thread) => thread.status === 'parked' && key(thread.tabs) === newKey);
+  for (const thread of same) await deleteThread(thread.id);
+}
+
 // Save the ticked tabs as a parked thread, with the window's trail, then go back home.
 async function parkThread(event) {
   event.preventDefault();
@@ -452,6 +462,7 @@ async function parkThread(event) {
   const untickedUrls = new Set(parkCardTabs.filter((tab) => !tabs.includes(tab)).map((tab) => pageAddress(tab.url)));
   const windowTrail = await getTrail(tabs[0].windowId);
   const note = document.getElementById('park-note').value.trim();
+  await replaceSameThread(tabs);
 
   await saveThread({
     id: crypto.randomUUID(),
