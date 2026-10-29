@@ -54,7 +54,7 @@ README.md
 ```js
 // one thread
 { id, title, note, noteIsGuess, next, tabs: [{ url, title, favIconUrl, active }],
-  trail: [{ url, title, time }], parkedAt, status: "parked" | "done" }
+  trail: [{ url, title, time }], parkedAt, status: "parked" | "picked-up" | "done" }
 ```
 
 ## Design
