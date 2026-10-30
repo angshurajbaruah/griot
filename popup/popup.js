@@ -600,12 +600,42 @@ function siteName(url) {
   }
 }
 
+// The parked thread shown on the welcome back screen, if there is one.
+let welcomeThread = null;
+
 // Fill the welcome back screen from the saved card and show it.
-async function showWelcome(welcome) {
+// If you parked a thread, the screen shows that thread (your own note) and Pick up.
+// If nothing is parked, it shows where you stopped, from the trail.
+// showTrail: true skips the parked thread ("See where I stopped instead").
+async function showWelcome(welcome, showTrail = false) {
   shownWelcome = welcome;
   await setWelcome({ ...welcome, shown: true });
 
+  const thread = !showTrail && welcome.threadId
+    ? (await getThreads()).find((saved) => saved.id === welcome.threadId && saved.status === 'parked')
+    : null;
+  welcomeThread = thread || null;
+  if (!thread && !welcome.stoppedAt) {
+    await forgetWelcome();
+    return goHome();
+  }
+
   countUp(document.getElementById('welcome-away'), welcome.awayMinutes);
+  ['welcome-guess', 'welcome-trail-stopped', 'welcome-next', 'welcome-pages']
+    .forEach((id) => { document.getElementById(id).hidden = Boolean(thread); });
+  document.getElementById('welcome-thread').hidden = !thread;
+  document.getElementById('welcome-reopen').hidden = Boolean(thread);
+  const notIt = document.getElementById('welcome-not-it');
+  notIt.textContent = thread ? 'See where I stopped instead' : "That's not it";
+  notIt.hidden = Boolean(thread) && !welcome.stoppedAt;
+
+  if (thread) {
+    showWelcomeThread(thread);
+    showScreen('welcome');
+    document.getElementById('welcome-go').focus();
+    return;
+  }
+
   document.getElementById('welcome-guess').hidden = !welcome.compared && !welcome.topic;
   makeGuessText(welcome);
 
@@ -628,6 +658,35 @@ async function showWelcome(welcome) {
 
   showScreen('welcome');
   document.getElementById('welcome-go').focus();
+}
+
+// Show the parked thread on the welcome back screen: your note, where you stopped, Next.
+function showWelcomeThread(thread) {
+  const note = document.getElementById('welcome-thread-note');
+  note.textContent = thread.noteIsGuess ? `Griot's guess: ${thread.note}` : thread.note || thread.title;
+  note.classList.toggle('is-guess', Boolean(thread.noteIsGuess));
+
+  const trail = thread.trail || [];
+  const stopped = trail[trail.length - 1] || thread.tabs.find((tab) => tab.active) || thread.tabs[0];
+  document.getElementById('welcome-thread-stopped-title').replaceChildren(
+    makeFavicon(stopped.url, 'site-icon trail-icon'), shortTitle(stopped.title) || stopped.url);
+  document.getElementById('welcome-thread-stopped-meta').textContent =
+    stopped.time ? `${siteName(stopped.url)} · ${clockText(stopped.time)}` : siteName(stopped.url);
+
+  document.getElementById('welcome-thread-next').replaceChildren(...(thread.next ? [makeNextLine(thread.next)] : []));
+  document.getElementById('welcome-thread-meta').textContent =
+    `${tabCountText(thread.tabs.length)} · parked ${parkedTimeText(thread.parkedAt, false)}`;
+  document.getElementById('welcome-go-text').textContent = 'Pick up this thread';
+}
+
+// Pick up the parked thread from the welcome back screen and go straight to its tab.
+async function welcomePickUp() {
+  const thread = welcomeThread;
+  await forgetWelcome();
+  sound('pickup');
+  const place = await chrome.runtime.sendMessage({ type: 'pick-up', threadId: thread.id });
+  if (place) chrome.runtime.sendMessage({ type: 'go-to', url: place.url, windowId: place.windowId });
+  window.close();
 }
 
 // "Sign up for Product X?" becomes "sign up for Product X?" after "Next (guess):".
@@ -838,7 +897,7 @@ document.getElementById('detail-delete').addEventListener('click', () => showDel
 document.getElementById('delete-cancel').addEventListener('click', () => showDeleteConfirm(false));
 document.getElementById('delete-yes').addEventListener('click', deleteOpenThread);
 
-document.getElementById('welcome-go').addEventListener('click', welcomeGoTo);
+document.getElementById('welcome-go').addEventListener('click', () => (welcomeThread ? welcomePickUp() : welcomeGoTo()));
 document.getElementById('closed-window-park').addEventListener('click', parkClosedWindow);
 document.getElementById('closed-window-dismiss').addEventListener('click', dismissClosedWindow);
 
@@ -856,7 +915,8 @@ document.getElementById('delete-all').addEventListener('click', () => showDelete
 document.getElementById('delete-all-cancel').addEventListener('click', () => showDeleteAllConfirm(false));
 document.getElementById('delete-all-yes').addEventListener('click', deleteAll);
 document.getElementById('welcome-reopen').addEventListener('click', welcomeReopenAll);
-document.getElementById('welcome-not-it').addEventListener('click', welcomeNotIt);
+document.getElementById('welcome-not-it').addEventListener('click', () =>
+  (welcomeThread ? showWelcome(shownWelcome, true) : welcomeNotIt()));
 document.getElementById('here-ok').addEventListener('click', goToPickedUpTab);
 document.getElementById('here-back').addEventListener('click', () => goHome());
 

@@ -757,7 +757,13 @@ a:focus-visible {
   display: block;
 }
 
-/* Welcome back: shown after a break, everything on it is Griot's guess */
+/* Welcome back: shown after a break. The parked thread (if any) comes first */
+.welcome-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .welcome-heading {
   display: flex;
   flex-direction: column;
