@@ -141,12 +141,35 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   return false;
 });
 
-// The Alt+Shift+P shortcut opens Griot on the park card. If Chrome won't open the
-// popup from a shortcut, the park card is waiting the next time you click the icon.
-chrome.commands.onCommand.addListener(async (command) => {
-  if (command !== 'park-thread') return;
-  await setPopupRequest('park');
-  chrome.action.openPopup().catch(() => {});
+// ---------- Griot's own small window ----------
+
+// Chrome won't reliably let an extension open its toolbar popup by itself (it failed on
+// the owner's Mac). So when Griot needs to show something without a click, it opens its
+// own small window with the same screens, at the top right of the window you're in.
+// The window closes itself as soon as you click anywhere else, like the popup does.
+async function openGriotWindow(screen) {
+  await setPopupRequest(screen);
+  const anchor = await chrome.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => null);
+  const { griotWindowId } = await chrome.storage.local.get({ griotWindowId: null });
+  if (griotWindowId !== null) await chrome.windows.remove(griotWindowId).catch(() => {});
+
+  const width = 396;
+  const height = 660;
+  const place = anchor
+    ? { left: Math.max(0, anchor.left + anchor.width - width - 16), top: anchor.top + 72 }
+    : {};
+  const query = anchor ? `?window=${anchor.id}` : '';
+  const options = { url: chrome.runtime.getURL(`popup/popup.html${query}`), type: 'popup', width, height, focused: true };
+  // Chrome refuses a position that is mostly off screen (it can happen with a second
+  // monitor), so if the top-right spot is refused, let Chrome place the window itself.
+  const created = await chrome.windows.create({ ...options, ...place })
+    .catch(() => chrome.windows.create(options));
+  await chrome.storage.local.set({ griotWindowId: created.id });
+}
+
+// The Alt+Shift+P shortcut opens Griot on the park card, in its own small window.
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'park-thread') openGriotWindow('park').catch((error) => console.error('Griot could not open', error));
 });
 
 // ---------- Welcome back ----------
@@ -202,6 +225,7 @@ async function cameBackTo(windowId) {
 
   const guess = guessFromTrail(visits);
   await setWelcome({ ...guess, threadId: parked ? parked.id : null, windowId, awayMinutes, returnedAt: Date.now(), shown: false });
+  if (settings.openOnReturn) await openGriotWindow('welcome').catch((error) => console.error('Griot could not open', error));
   const leftUrl = parked
     ? (parked.tabs.find((tab) => tab.active) || parked.tabs[0]).url
     : guess.stoppedAt.url;

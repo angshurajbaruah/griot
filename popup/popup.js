@@ -9,6 +9,10 @@ const SKIPPED_URLS = ['chrome://newtab/', 'about:blank'];
 // How many trail pages the detail screen shows; older ones are counted as hidden.
 const TRAIL_PAGES_SHOWN = 6;
 
+// When Griot opens in its own small window (welcome back or the shortcut), the address
+// says which browser window it belongs to, like popup.html?window=123.
+const OWN_WINDOW_FOR = Number(new URLSearchParams(location.search).get('window')) || null;
+
 // The draft note Griot wrote, so we can tell later whether the user changed it.
 let draftedNote = '';
 
@@ -28,7 +32,7 @@ let parkingClosedWindow = false;
 // Sites you never want tracked (and banking and health sites) are left out.
 async function getCurrentWindowTabs() {
   const settings = await getSettings();
-  const tabs = await chrome.tabs.query({ currentWindow: true });
+  const tabs = await chrome.tabs.query(OWN_WINDOW_FOR ? { windowId: OWN_WINDOW_FOR } : { currentWindow: true });
   return tabs.filter((tab) => !SKIPPED_URLS.includes(tab.url) && !isBlockedSite(tab.url, settings));
 }
 
@@ -609,7 +613,9 @@ let welcomeThread = null;
 // showTrail: true skips the parked thread ("See where I stopped instead").
 async function showWelcome(welcome, showTrail = false) {
   shownWelcome = welcome;
-  await setWelcome({ ...welcome, shown: true });
+  // Seen in the toolbar popup: don't show it again by itself. When Griot opened its own
+  // window, keep it waiting, so if that window closed before you read it, the icon still has it.
+  if (!OWN_WINDOW_FOR) await setWelcome({ ...welcome, shown: true });
 
   const thread = !showTrail && welcome.threadId
     ? (await getThreads()).find((saved) => saved.id === welcome.threadId && saved.status === 'parked')
@@ -768,6 +774,7 @@ async function showSettings() {
   document.getElementById('setting-chime').checked = settings.welcomeChime;
   document.getElementById('setting-label').checked = settings.labelTab;
   document.getElementById('setting-sounds').checked = settings.soundEffects;
+  document.getElementById('setting-open').checked = settings.openOnReturn;
   showBlockedSites(settings);
   document.getElementById('add-site-form').hidden = true;
   document.getElementById('add-site-button').hidden = false;
@@ -784,6 +791,7 @@ async function onSettingChanged(event) {
   if (id === 'setting-closed') await updateSettings({ closedWindowPrompt: event.target.checked });
   if (id === 'setting-pause') await updateSettings({ pausedUntil: event.target.checked ? endOfToday() : 0 });
   if (id === 'setting-label') await updateSettings({ labelTab: event.target.checked });
+  if (id === 'setting-open') await updateSettings({ openOnReturn: event.target.checked });
   if (id === 'setting-chime') {
     await updateSettings({ welcomeChime: event.target.checked });
     if (event.target.checked) playSound('welcome'); // let you hear the chime you turned on
@@ -903,7 +911,7 @@ document.getElementById('closed-window-dismiss').addEventListener('click', dismi
 
 document.querySelectorAll('.settings-button').forEach((button) => button.addEventListener('click', showSettings));
 document.getElementById('settings-back').addEventListener('click', () => goHome());
-['setting-welcome', 'setting-closed', 'setting-pause', 'setting-chime', 'setting-label', 'setting-sounds'].forEach((id) =>
+['setting-welcome', 'setting-closed', 'setting-pause', 'setting-chime', 'setting-label', 'setting-sounds', 'setting-open'].forEach((id) =>
   document.getElementById(id).addEventListener('change', onSettingChanged));
 document.getElementById('add-site-button').addEventListener('click', openAddSite);
 document.getElementById('add-site-form').addEventListener('submit', addBlockedSite);
@@ -921,4 +929,10 @@ document.getElementById('here-ok').addEventListener('click', goToPickedUpTab);
 document.getElementById('here-back').addEventListener('click', () => goHome());
 
 document.body.classList.add('opening'); // the woven strip slides in once, when the popup opens
+
+// In Griot's own small window, behave like the popup: close when you click elsewhere.
+if (OWN_WINDOW_FOR) {
+  document.body.classList.add('own-window');
+  window.addEventListener('blur', () => window.close());
+}
 start();

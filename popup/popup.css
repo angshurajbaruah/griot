@@ -22,6 +22,12 @@
   --font-ui: 'Instrument Sans', system-ui, sans-serif;
 }
 
+/* In Griot's own small window the page fills the window */
+body.own-window {
+  width: 100%;
+  max-height: none;
+}
+
 /* Popup frame: 380px wide, never taller than 600px */
 html, body {
   margin: 0;
