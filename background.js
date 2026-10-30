@@ -187,16 +187,25 @@ async function cameBackTo(windowId) {
   const awayMinutes = Math.round((Date.now() - leftAt) / 60000);
   if (awayMinutes < WELCOME_AFTER_MINUTES) return;
 
-  const visits = (await getTrail(windowId))
-    .filter((visit) => visit.time <= leftAt && visit.time >= leftAt - GUESS_WINDOW_MS);
-  if (visits.length === 0) return;
-
   const settings = await getSettings();
   if (isPaused(settings) || !settings.welcomeBack) return;
 
+  // If you parked a thread, welcome back is about that thread: your own note comes first.
+  const parked = (await getThreads())
+    .filter((thread) => thread.status === 'parked' && thread.parkedAt <= Date.now())
+    .sort((a, b) => b.parkedAt - a.parkedAt)[0];
+
+  // Otherwise it is built from the pages you visited before you left.
+  const visits = (await getTrail(windowId))
+    .filter((visit) => visit.time <= leftAt && visit.time >= leftAt - GUESS_WINDOW_MS);
+  if (visits.length === 0 && !parked) return;
+
   const guess = guessFromTrail(visits);
-  await setWelcome({ ...guess, windowId, awayMinutes, returnedAt: Date.now(), shown: false });
-  if (settings.labelTab) await labelLeftTab(windowId, guess.stoppedAt.url);
+  await setWelcome({ ...guess, threadId: parked ? parked.id : null, windowId, awayMinutes, returnedAt: Date.now(), shown: false });
+  const leftUrl = parked
+    ? (parked.tabs.find((tab) => tab.active) || parked.tabs[0]).url
+    : guess.stoppedAt.url;
+  if (settings.labelTab) await labelLeftTab(windowId, leftUrl);
   if (settings.welcomeChime) playChime(); // not awaited, so recording visits never waits for the sound
 }
 

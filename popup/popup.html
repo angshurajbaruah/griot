@@ -121,7 +121,8 @@
     </div>
   </div>
 
-  <!-- Screen 4: welcome back after a break. Everything on it is Griot's guess -->
+  <!-- Screen 4: welcome back after a break. If a thread is parked it shows that thread
+       (your own note); otherwise it shows Griot's guess from the trail -->
   <div id="welcome-screen" class="screen" hidden>
     <header class="header m-in" style="--i:0">
       <img class="wordmark" src="../assets/brand/griot-wordmark.svg" alt="Griot">
@@ -137,12 +138,28 @@
       </div>
 
       <article class="welcome-card m-in" style="--i:2">
+        <!-- The thread you parked, shown first when there is one -->
+        <div id="welcome-thread" class="welcome-thread" hidden>
+          <span class="caption">You parked this</span>
+          <p id="welcome-thread-note" class="detail-note"></p>
+          <div id="welcome-thread-stopped" class="stopped-here">
+            <span class="stopped-dot" aria-hidden="true"></span>
+            <div class="stopped-text">
+              <span class="stopped-label">You stopped here</span>
+              <span id="welcome-thread-stopped-title" class="stopped-title"></span>
+              <span id="welcome-thread-stopped-meta" class="caption"></span>
+            </div>
+          </div>
+          <div id="welcome-thread-next"></div>
+          <span id="welcome-thread-meta" class="caption"></span>
+        </div>
+
         <div id="welcome-guess" class="welcome-guess m-in" style="--i:4">
           <span class="caption">Griot's guess</span>
           <p id="welcome-guess-text" class="welcome-guess-text"></p>
         </div>
 
-        <div class="stopped-here m-in" style="--i:5">
+        <div id="welcome-trail-stopped" class="stopped-here m-in" style="--i:5">
           <span class="stopped-dot" aria-hidden="true"></span>
           <div class="stopped-text">
             <span class="stopped-label">You stopped here</span>
