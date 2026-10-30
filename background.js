@@ -177,9 +177,16 @@ async function openGriotWindow(screen) {
   await chrome.storage.local.set({ griotWindowId: created.id });
 }
 
-// The Alt+Shift+P shortcut opens Griot on the park card, in its own small window.
-chrome.commands.onCommand.addListener((command) => {
-  if (command === 'park-thread') openGriotWindow('park').catch((error) => console.error('Griot could not open', error));
+// The Alt+Shift+P shortcut opens Griot on the park card. It tries Chrome's toolbar popup
+// first (a key press usually lets it open); if Chrome refuses, it uses Griot's own window.
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command !== 'park-thread') return;
+  await setPopupRequest('park');
+  try {
+    await chrome.action.openPopup();
+  } catch (error) {
+    await openGriotWindow('park').catch((failure) => console.error('Griot could not open', failure));
+  }
 });
 
 // ---------- Welcome back ----------
@@ -235,7 +242,14 @@ async function cameBackTo(windowId) {
 
   const guess = guessFromTrail(visits);
   await setWelcome({ ...guess, threadId: parked ? parked.id : null, windowId, awayMinutes, returnedAt: Date.now(), shown: false });
-  if (settings.openOnReturn) await openGriotWindow('welcome').catch((error) => console.error('Griot could not open', error));
+  // Opening Griot by itself is off unless you switch it on, and never happens in full
+  // screen, where it would take over the screen. The chime, badge and tab label are the reminder.
+  if (settings.openOnReturn) {
+    const win = await chrome.windows.get(windowId).catch(() => null);
+    if (win && win.state !== 'fullscreen') {
+      await openGriotWindow('welcome').catch((error) => console.error('Griot could not open', error));
+    }
+  }
   const leftUrl = parked
     ? (parked.tabs.find((tab) => tab.active) || parked.tabs[0]).url
     : guess.stoppedAt.url;

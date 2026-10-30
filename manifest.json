@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Griot",
   "description": "Your context lives on. Remembers where you left off, and keeps it on this device.",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "permissions": [
     "tabs",
     "storage",
