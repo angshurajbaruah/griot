@@ -159,7 +159,17 @@ async function openGriotWindow(screen) {
     ? { left: Math.max(0, anchor.left + anchor.width - width - 16), top: anchor.top + 72 }
     : {};
   const query = anchor ? `?window=${anchor.id}` : '';
-  const options = { url: chrome.runtime.getURL(`popup/popup.html${query}`), type: 'popup', width, height, focused: true };
+  const url = chrome.runtime.getURL(`popup/popup.html${query}`);
+
+  // If Chrome is in full screen, a new window would take over the whole screen (macOS
+  // opens it as its own full-screen space). Open Griot as a tab next to yours instead.
+  if (anchor && anchor.state === 'fullscreen') {
+    const tab = await chrome.tabs.create({ windowId: anchor.id, url, active: true });
+    await chrome.storage.local.set({ griotWindowId: null, griotTabId: tab.id });
+    return;
+  }
+
+  const options = { url, type: 'popup', state: 'normal', width, height, focused: true };
   // Chrome refuses a position that is mostly off screen (it can happen with a second
   // monitor), so if the top-right spot is refused, let Chrome place the window itself.
   const created = await chrome.windows.create({ ...options, ...place })
