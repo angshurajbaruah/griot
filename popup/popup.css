@@ -22,10 +22,20 @@
   --font-ui: 'Instrument Sans', system-ui, sans-serif;
 }
 
-/* In Griot's own small window the page fills the window */
-body.own-window {
+/* In Griot's own window (or tab), the page keeps the popup's 380px column and sits in
+   the middle, so it still looks right if the window opens larger than planned */
+html.own-window {
   width: 100%;
   max-height: none;
+  min-height: 100%;
+}
+
+body.own-window {
+  width: 380px;
+  max-height: none;
+  margin: 0 auto;
+  box-shadow: 0 0 0 1px var(--hairline);
+  min-height: 100vh;
 }
 
 /* Popup frame: 380px wide, never taller than 600px */

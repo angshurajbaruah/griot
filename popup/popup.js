@@ -28,12 +28,20 @@ let parkingClosedWindow = false;
 
 // ---------- Small helpers ----------
 
+// Close Griot: the toolbar popup, its own small window, or its tab (in full screen).
+function closeGriot() {
+  chrome.tabs.getCurrent().then((tab) => {
+    if (tab && OWN_WINDOW_FOR && tab.windowId === OWN_WINDOW_FOR) chrome.tabs.remove(tab.id);
+    else window.close();
+  }).catch(() => window.close());
+}
+
 // Get the tabs of the window you are in, leaving out empty new tabs.
 // Sites you never want tracked (and banking and health sites) are left out.
 async function getCurrentWindowTabs() {
   const settings = await getSettings();
   const tabs = await chrome.tabs.query(OWN_WINDOW_FOR ? { windowId: OWN_WINDOW_FOR } : { currentWindow: true });
-  return tabs.filter((tab) => !SKIPPED_URLS.includes(tab.url) && !isBlockedSite(tab.url, settings));
+  return tabs.filter((tab) => /^https?:/.test(tab.url || '') && !SKIPPED_URLS.includes(tab.url) && !isBlockedSite(tab.url, settings));
 }
 
 // Make a site icon image from Chrome's local favicon store.
@@ -373,7 +381,7 @@ async function pickUpThread(thread) {
 function goToPickedUpTab() {
   if (!takeMeThere) return;
   chrome.runtime.sendMessage({ type: 'go-to', url: takeMeThere.url, windowId: takeMeThere.windowId });
-  window.close();
+  closeGriot();
 }
 
 // ---------- Park card ----------
@@ -692,7 +700,7 @@ async function welcomePickUp() {
   sound('pickup');
   const place = await chrome.runtime.sendMessage({ type: 'pick-up', threadId: thread.id });
   if (place) chrome.runtime.sendMessage({ type: 'go-to', url: place.url, windowId: place.windowId });
-  window.close();
+  closeGriot();
 }
 
 // "Sign up for Product X?" becomes "sign up for Product X?" after "Next (guess):".
@@ -712,7 +720,7 @@ async function welcomeGoTo() {
   const visit = shownWelcome.goTo ? shownWelcome.goTo.visit : shownWelcome.stoppedAt;
   await forgetWelcome();
   chrome.runtime.sendMessage({ type: 'go-to', url: visit.url, windowId: shownWelcome.windowId });
-  window.close();
+  closeGriot();
 }
 
 // Bring back every page from before the break, selecting where you stopped.
@@ -721,7 +729,7 @@ async function welcomeReopenAll() {
   const tabs = shownWelcome.pages.map((visit) => ({ url: visit.url, active: pageAddress(visit.url) === activeUrl }));
   await forgetWelcome();
   chrome.runtime.sendMessage({ type: 'reopen-tabs', tabs });
-  window.close();
+  closeGriot();
 }
 
 // "That's not it": open the park card for that window with an empty note,
@@ -932,7 +940,8 @@ document.body.classList.add('opening'); // the woven strip slides in once, when 
 
 // In Griot's own small window, behave like the popup: close when you click elsewhere.
 if (OWN_WINDOW_FOR) {
+  document.documentElement.classList.add('own-window');
   document.body.classList.add('own-window');
-  window.addEventListener('blur', () => window.close());
+  window.addEventListener('blur', () => closeGriot());
 }
 start();
